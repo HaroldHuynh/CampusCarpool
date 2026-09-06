@@ -4,6 +4,8 @@ import { getAccessRequest, saveProfile, type ContactMethod } from '../auth/auth'
 import {
   cancelRide,
   cancelSeat,
+  respondToSeatRequest,
+  setRideStatus,
   closeRideRequest,
   fetchHistory,
   rateUser,
@@ -210,10 +212,16 @@ function HistoryPage({
   }
 
   const now = new Date().toISOString()
-  const upcomingReserved = reserved.filter((r) => r.departure_at >= now)
-  const upcomingOffered = offered.filter((r) => r.departure_at >= now)
-  const pastReserved = reserved.filter((r) => r.departure_at < now)
-  const pastOffered = offered.filter((r) => r.departure_at < now)
+  // A ride is done when the driver says so, not when its departure time
+  // passes — a completed trip was showing under "currently offering" purely
+  // because it was scheduled for tomorrow.
+  const isDone = (r: HistoryRide) =>
+    r.status === 'completed' || r.status === 'cancelled' || r.departure_at < now
+
+  const upcomingReserved = reserved.filter((r) => !isDone(r))
+  const upcomingOffered = offered.filter((r) => !isDone(r))
+  const pastReserved = reserved.filter(isDone)
+  const pastOffered = offered.filter(isDone)
   const name = profile?.display_name ?? 'Your profile'
 
   return (
@@ -296,6 +304,9 @@ function HistoryPage({
           {upcomingReserved.length > 0 ? (
             upcomingReserved.map((ride) => (
               <TripCard key={ride.id} ride={ride} role="Passenger">
+                <p className="trip-riders">
+                  {ride.status === 'in_progress' ? 'Under way' : 'Waiting to depart'}
+                </p>
                 <button
                   type="button"
                   className="cancel-link"
@@ -327,21 +338,102 @@ function HistoryPage({
           {upcomingOffered.length > 0 ? (
             upcomingOffered.map((ride) => (
               <TripCard key={ride.id} ride={ride} role="Driver">
-                {(ride.ride_reservations ?? []).length > 0 ? (
-                  <p className="trip-riders">
-                    Riders: {(ride.ride_reservations ?? []).map((r) => r.rider_name).join(', ')}
-                  </p>
-                ) : null}
-                <button
-                  type="button"
-                  className="cancel-link"
-                  disabled={busyId === `ride:${ride.id}`}
-                  onClick={() =>
-                    runCancel(`ride:${ride.id}`, () => cancelRide(ride.id), 'Ride cancelled.')
-                  }
-                >
-                  {busyId === `ride:${ride.id}` ? 'Cancelling…' : 'Cancel this ride'}
-                </button>
+                {(() => {
+                  const seats = ride.ride_reservations ?? []
+                  const pending = seats.filter((r) => r.status === 'pending')
+                  const going = seats.filter((r) => r.status === 'accepted')
+
+                  return (
+                    <>
+                      {going.length > 0 ? (
+                        <p className="trip-riders">
+                          Riding with {going.map((r) => r.rider_name).join(', ')}
+                        </p>
+                      ) : null}
+
+                      {pending.map((seat) => (
+                        <div className="seat-request" key={seat.id}>
+                          <span>{seat.rider_name} wants a seat</span>
+                          <span className="seat-request-actions">
+                            <button
+                              type="button"
+                              className="mini accept"
+                              disabled={busyId === `req:${seat.id}`}
+                              onClick={() =>
+                                runCancel(
+                                  `req:${seat.id}`,
+                                  () => respondToSeatRequest(seat.id, true),
+                                  `${seat.rider_name} is in.`,
+                                )
+                              }
+                            >
+                              Accept
+                            </button>
+                            <button
+                              type="button"
+                              className="mini"
+                              disabled={busyId === `req:${seat.id}`}
+                              onClick={() =>
+                                runCancel(
+                                  `req:${seat.id}`,
+                                  () => respondToSeatRequest(seat.id, false),
+                                  'Request declined.',
+                                )
+                              }
+                            >
+                              Decline
+                            </button>
+                          </span>
+                        </div>
+                      ))}
+
+                      <div className="trip-actions">
+                        {ride.status === 'scheduled' ? (
+                          <button
+                            type="button"
+                            className="mini accept"
+                            disabled={busyId === `go:${ride.id}`}
+                            onClick={() =>
+                              runCancel(
+                                `go:${ride.id}`,
+                                () => setRideStatus(ride.id, 'in_progress'),
+                                'Ride started.',
+                              )
+                            }
+                          >
+                            Start ride
+                          </button>
+                        ) : ride.status === 'in_progress' ? (
+                          <button
+                            type="button"
+                            className="mini accept"
+                            disabled={busyId === `go:${ride.id}`}
+                            onClick={() =>
+                              runCancel(
+                                `go:${ride.id}`,
+                                () => setRideStatus(ride.id, 'completed'),
+                                'Ride finished.',
+                              )
+                            }
+                          >
+                            Finish ride
+                          </button>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          className="cancel-link"
+                          disabled={busyId === `ride:${ride.id}`}
+                          onClick={() =>
+                            runCancel(`ride:${ride.id}`, () => cancelRide(ride.id), 'Ride cancelled.')
+                          }
+                        >
+                          Cancel this ride
+                        </button>
+                      </div>
+                    </>
+                  )
+                })()}
               </TripCard>
             ))
           ) : (
@@ -410,7 +502,11 @@ function HistoryPage({
             <>
               {pastOffered.map((ride) => (
                 <TripCard key={ride.id} ride={ride} role="Driver">
-                  {(ride.ride_reservations ?? []).map((passenger) =>
+                  {/* Only people who actually rode: a declined or withdrawn
+                      request is not someone you shared a trip with. */}
+                  {(ride.ride_reservations ?? [])
+                    .filter((p) => p.status === 'accepted')
+                    .map((passenger) =>
                     passenger.rider_profile_id ? (
                       <StarPicker
                         key={passenger.rider_profile_id}

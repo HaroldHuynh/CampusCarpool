@@ -12,6 +12,16 @@ export type Driver = {
   rating_count: number
 }
 
+export type RideStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
+export type SeatStatus = 'pending' | 'accepted' | 'declined'
+
+export type SeatRequest = {
+  id: string
+  rider_name: string
+  rider_profile_id: string | null
+  status: SeatStatus
+}
+
 export type OfferedRide = {
   id: string
   origin: string
@@ -21,7 +31,11 @@ export type OfferedRide = {
   price_per_seat: number
   driver_profile_id: string | null
   driver: Driver | null
-  passengers: string[]
+  status: RideStatus
+  started_at: string | null
+  requests: SeatRequest[]
+  /** The signed-in user's own seat request, if any. */
+  mySeat: SeatRequest | null
 }
 
 export type RideRequest = {
@@ -74,8 +88,9 @@ export async function fetchOfferedRides(): Promise<OfferedRide[]> {
   const { data, error } = await getSupabaseClient()
     .from('rides')
     .select(
-      'id, origin, destination, departure_at, seats_available, price_per_seat, driver_profile_id, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count), ride_reservations(rider_name)',
+      'id, origin, destination, departure_at, seats_available, price_per_seat, driver_profile_id, status, started_at, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count), ride_reservations(id, rider_name, rider_profile_id, status)',
     )
+    .in('status', ['scheduled', 'in_progress'])
     .gte('departure_at', new Date().toISOString())
     .order('departure_at', { ascending: true })
 
@@ -83,7 +98,14 @@ export async function fetchOfferedRides(): Promise<OfferedRide[]> {
     throw error
   }
 
-  return (data ?? []).map((row: Record<string, unknown>) => ({
+  const me = await getMyProfile()
+
+  return (data ?? []).map((row: Record<string, unknown>) => {
+    const requests = ((row.ride_reservations as SeatRequest[] | null) ?? []).filter(
+      (r) => r.status !== 'declined',
+    )
+
+    return {
     id: row.id as string,
     origin: row.origin as string,
     destination: row.destination as string,
@@ -92,10 +114,12 @@ export async function fetchOfferedRides(): Promise<OfferedRide[]> {
     price_per_seat: Number(row.price_per_seat),
     driver_profile_id: (row.driver_profile_id as string) ?? null,
     driver: one(row.driver as Driver | Driver[] | null),
-    passengers: ((row.ride_reservations as { rider_name: string }[] | null) ?? []).map(
-      (r) => r.rider_name,
-    ),
-  }))
+    status: (row.status as RideStatus) ?? 'scheduled',
+    started_at: (row.started_at as string) ?? null,
+    requests,
+    mySeat: me ? (requests.find((r) => r.rider_profile_id === me.id) ?? null) : null,
+    }
+  })
 }
 
 export async function offerRide(input: {
@@ -133,21 +157,40 @@ export async function offerRide(input: {
 }
 
 /**
- * Goes through the RPC rather than inserting directly: it decrements the seat
- * and writes the reservation in one statement, so two people clicking at once
- * cannot oversell the car. Returns false when the ride filled up first.
+ * Asks the driver for a seat. No seat is taken until they accept, so two
+ * people can both have a request in without overselling the car.
  */
-export async function reserveSeat(rideId: string) {
-  const profile = await getMyProfile()
+export async function requestSeat(rideId: string) {
+  const { data, error } = await getSupabaseClient().rpc('request_seat', {
+    target_ride_id: rideId,
+  })
 
-  if (!profile) {
-    throw new Error('Finish your profile before reserving.')
+  if (error) {
+    throw error
   }
 
-  const { data, error } = await getSupabaseClient().rpc('reserve_ride_seat', {
-    ride_id: rideId,
-    reserving_rider_name: profile.display_name,
-    reserving_profile_id: profile.id,
+  return data as 'requested' | 'already_requested' | 'full' | 'own_ride' | 'not_open' | 'missing'
+}
+
+/** Driver accepts or declines one seat request. */
+export async function respondToSeatRequest(requestId: string, accept: boolean) {
+  const { data, error } = await getSupabaseClient().rpc('respond_to_seat_request', {
+    request_id: requestId,
+    accept,
+  })
+
+  if (error) {
+    throw error
+  }
+
+  return Boolean(data)
+}
+
+/** Driver starts, finishes or calls off their own ride. */
+export async function setRideStatus(rideId: string, status: RideStatus) {
+  const { data, error } = await getSupabaseClient().rpc('set_ride_status', {
+    target_ride_id: rideId,
+    next_status: status,
   })
 
   if (error) {
@@ -254,8 +297,10 @@ export type HistoryRide = {
   seats_available: number
   price_per_seat: number
   driver_profile_id: string | null
+  status: RideStatus
+  started_at: string | null
   driver?: Driver | null
-  ride_reservations?: { rider_name: string; rider_profile_id: string | null }[]
+  ride_reservations?: SeatRequest[]
 }
 
 export async function fetchHistory(profileId: string) {
@@ -264,7 +309,7 @@ export async function fetchHistory(profileId: string) {
   const [offered, reservations, given, requests] = await Promise.all([
     supabase
       .from('rides')
-      .select('*, ride_reservations(rider_name, rider_profile_id)')
+      .select('*, ride_reservations(id, rider_name, rider_profile_id, status)')
       .eq('driver_profile_id', profileId)
       .order('departure_at'),
     supabase

@@ -266,3 +266,114 @@
 .star-picker button:disabled {
   cursor: default;
 }
+
+/* ---------- seat requests & ride lifecycle ---------- */
+
+/* A pending rider is dimmed and outlined; a confirmed one is solid, so the
+   difference between "asked" and "riding" is visible at a glance. */
+.passenger.is-pending {
+  background: transparent;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+}
+
+.row-actions {
+  display: grid;
+  gap: 4px;
+  justify-items: stretch;
+}
+
+.pending-note {
+  color: var(--orange, #ff705b);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.reserve.is-secondary {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.reserve.is-secondary:hover:not(:disabled) {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.seat-request {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fbfdfc;
+  font-size: 12px;
+}
+
+.seat-request-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mini {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.mini:hover:not(:disabled) {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.mini.accept {
+  background: var(--green);
+  border-color: var(--green);
+  color: #ffffff;
+}
+
+.mini.accept:hover:not(:disabled) {
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+.mini:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.trip-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.trip-actions .cancel-link {
+  margin-top: 0;
+}
+
+.ride-state {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--lime, #c6e546);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
