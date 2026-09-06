@@ -57,7 +57,14 @@ export default function MapCanvas({
     layers.current = L.layerGroup().addTo(instance)
     map.current = instance
 
+    // Leaflet measures its container once at construction. In a grid that is
+    // still settling, that measurement is wrong and the map renders at a
+    // nonsense zoom, so re-measure whenever the container actually resizes.
+    const observer = new ResizeObserver(() => instance.invalidateSize())
+    observer.observe(holder.current)
+
     return () => {
+      observer.disconnect()
       instance.remove()
       map.current = null
       layers.current = null
@@ -101,9 +108,14 @@ export default function MapCanvas({
   }, [routes, markers, onSelectRoute])
 
   useEffect(() => {
-    if (!map.current || fit.length === 0) return
+    const instance = map.current
+    if (!instance || fit.length === 0) return
+
     const bounds = L.latLngBounds(fit.map((p) => [p.lat, p.lng] as [number, number]))
-    map.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 })
+    if (!bounds.isValid()) return
+
+    instance.invalidateSize()
+    instance.fitBounds(bounds, { padding: [48, 48], maxZoom: 13 })
   }, [fit])
 
   return (

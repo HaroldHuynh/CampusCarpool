@@ -32,17 +32,22 @@ export default function LocationPicker({
   bias?: { lat: number; lng: number } | null
 }) {
   const listId = useId()
-  const [query, setQuery] = useState(value)
   const [options, setOptions] = useState<GeocodeResult[]>([])
   const [open, setOpen] = useState(false)
   const [offline, setOffline] = useState(false)
   const controller = useRef<AbortController | null>(null)
-
-  useEffect(() => setQuery(value), [value])
+  const picked = useRef(false)
 
   useEffect(() => {
-    const typed = query.trim()
-    if (typed.length < 2 || typed === value) {
+    // A chosen suggestion is already canonical — don't search for it again.
+    if (picked.current) {
+      picked.current = false
+      setOptions([])
+      return
+    }
+
+    const typed = value.trim()
+    if (typed.length < 2) {
       setOptions([])
       return
     }
@@ -68,33 +73,37 @@ export default function LocationPicker({
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [query, value, bias])
+  }, [value, bias])
 
   function choose(option: GeocodeResult) {
+    picked.current = true
     onChange(option.label)
-    setQuery(option.label)
     setOpen(false)
   }
 
   return (
-    <label htmlFor={id}>
-      {label}
+    <label className="trip-field" htmlFor={id}>
+      <span>{label}</span>
       <input
         id={id}
-        value={query}
+        value={value}
         placeholder={placeholder}
         autoComplete="off"
         role="combobox"
         aria-expanded={open && options.length > 0}
         aria-controls={listId}
+        aria-autocomplete="list"
         onChange={(event) => {
-          setQuery(event.target.value)
+          // Keep the parent in step with every keystroke: a trip typed out in
+          // full is still a trip, even if nobody opens the suggestion list.
+          onChange(event.target.value)
           setOpen(true)
         }}
+        onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
       />
       {offline ? (
-        <small className="place-note">Place search is offline — known places still work.</small>
+        <small className="picker-note">Place search is offline. Known places still work.</small>
       ) : null}
       {open && options.length > 0 ? (
         <ul id={listId} className="picker-options" role="listbox">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { fetchOfferedRides, type CampusProfile, type OfferedRide } from '../data/api'
 import LocationPicker from '../components/LocationPicker'
 import MapCanvas, { type MapMarker, type MapRoute } from '../map/MapCanvas'
@@ -9,6 +9,17 @@ import { resolveLocation, type ResolvedLocation } from '../map/locations'
 type Located = { ride: OfferedRide; origin: ResolvedLocation; destination: ResolvedLocation }
 
 const RIDE_COLORS = ['#16785d', '#ff705b', '#0d5e48', '#8a6d3b', '#3d6ea5']
+
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n))
+
+function formatDeparture(iso: string): string {
+  const when = new Date(iso)
+  return when.toLocaleString(undefined, {
+    weekday: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
 
 export default function MapPage({ profile }: { profile: CampusProfile | null }) {
   const [located, setLocated] = useState<Located[]>([])
@@ -28,6 +39,34 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [originPoint, setOriginPoint] = useState<ResolvedLocation | null>(null)
 
+  const load = useCallback(async () => {
+    setIsLoading(true)
+    setLoadError('')
+    try {
+      const rides = await fetchOfferedRides()
+      const resolved = await Promise.all(
+        rides.map(async (ride) => {
+          const [from, to] = await Promise.all([
+            resolveLocation(ride.origin),
+            resolveLocation(ride.destination),
+          ])
+          return from && to ? { ride, origin: from, destination: to } : null
+        }),
+      )
+      const usable = resolved.filter((r): r is Located => r !== null)
+      setLocated(usable)
+      setUnmapped(rides.length - usable.length)
+    } catch {
+      setLoadError("Couldn't reach the ride board.")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
   // Anchors the destination search near the chosen origin. Without it, common
   // names resolve to the wrong continent — "San Jose airport" lands in the
   // Philippines.
@@ -44,40 +83,6 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
       live = false
     }
   }, [origin])
-
-  useEffect(() => {
-    let live = true
-
-    async function load() {
-      setIsLoading(true)
-      setLoadError('')
-      try {
-        const rides = await fetchOfferedRides()
-        const resolved = await Promise.all(
-          rides.map(async (ride) => {
-            const [from, to] = await Promise.all([
-              resolveLocation(ride.origin),
-              resolveLocation(ride.destination),
-            ])
-            return from && to ? { ride, origin: from, destination: to } : null
-          }),
-        )
-        if (!live) return
-        const usable = resolved.filter((r): r is Located => r !== null)
-        setLocated(usable)
-        setUnmapped(rides.length - usable.length)
-      } catch {
-        if (live) setLoadError('Could not load rides. Try again.')
-      } finally {
-        if (live) setIsLoading(false)
-      }
-    }
-
-    void load()
-    return () => {
-      live = false
-    }
-  }, [])
 
   const matches = useMemo<Match[]>(() => {
     if (!trip) return []
@@ -104,6 +109,15 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
     return matches.find((m) => m.rideId === selectedId) ?? matches[0]
   }, [matches, selectedId])
 
+  const colorFor = useCallback(
+    (rideId: string) => {
+      const index = matches.findIndex((m) => m.rideId === rideId)
+      const fallback = located.findIndex((l) => l.ride.id === rideId)
+      return RIDE_COLORS[(index >= 0 ? index : Math.max(0, fallback)) % RIDE_COLORS.length]
+    },
+    [matches, located],
+  )
+
   const detail = useMemo(() => {
     if (!trip || !selected) return null
     const entry = byId.get(selected.rideId)
@@ -127,17 +141,17 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
     const source = trip
       ? matches.map((m) => byId.get(m.rideId)).filter((l): l is Located => Boolean(l))
       : located
-    source.forEach((entry, index) => {
+    for (const entry of source) {
       drawn.push({
         id: entry.ride.id,
         from: entry.origin,
         to: entry.destination,
-        color: RIDE_COLORS[index % RIDE_COLORS.length],
+        color: colorFor(entry.ride.id),
         dimmed: selected !== null && selected.rideId !== entry.ride.id,
       })
-    })
+    }
     return drawn
-  }, [trip, matches, located, byId, selected])
+  }, [trip, matches, located, byId, selected, colorFor])
 
   const markers = useMemo<MapMarker[]>(() => {
     const pins: MapMarker[] = []
@@ -177,17 +191,21 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
     setTripError('')
 
     if (!origin.trim() || !destination.trim()) {
-      setTripError('Enter where you are starting and where you are going.')
+      setTripError('Add both a starting point and a destination.')
       return
     }
     if (!departAt) {
-      setTripError('Choose when you want to leave.')
+      setTripError('Add the time you want to leave.')
       return
     }
 
     const [from, to] = await Promise.all([resolveLocation(origin), resolveLocation(destination)])
-    if (!from || !to) {
-      setTripError('Could not find one of those places. Pick a suggestion from the list.')
+    if (!from) {
+      setTripError(`We couldn't place "${origin}". Pick one of the suggestions instead.`)
+      return
+    }
+    if (!to) {
+      setTripError(`We couldn't place "${destination}". Pick one of the suggestions instead.`)
       return
     }
 
@@ -195,19 +213,30 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
     setSelectedId(null)
   }
 
+  const heading = trip ? 'Rides sharing your route' : 'Rides on the board'
+  const count = trip ? matches.length : located.length
+
   return (
-    <main className="page">
-      <section className="hero">
-        <p className="eyebrow">Share the leg you have in common</p>
+    <main>
+      <section className="page-hero">
+        <p className="eyebrow">SHARE THE LEG YOU HAVE IN COMMON</p>
         <h1>Match my trip</h1>
         <p>
-          Rides rarely start and end exactly where you do. Tell us your trip and we will find the
-          drivers already going most of your way, plus a public place to meet them.
+          Rides rarely start and end exactly where you do. Add your trip and we will find the
+          drivers already going most of your way, and a public place to meet them.
         </p>
       </section>
 
-      <section className="section">
-        <form className="map-trip-form" onSubmit={handleMatch}>
+      <section className="requests map-page">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">PLAN YOUR TRIP</p>
+            <h2>Where are you headed?</h2>
+            <p>We compare your route against every upcoming ride, not just exact matches.</p>
+          </div>
+        </div>
+
+        <form className="trip-bar" onSubmit={handleMatch}>
           <LocationPicker
             id="map-origin"
             label="Starting from"
@@ -223,8 +252,8 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
             placeholder="San Jose airport"
             bias={originPoint}
           />
-          <label htmlFor="map-depart">
-            Leaving around
+          <label className="trip-field" htmlFor="map-depart">
+            <span>Leaving around</span>
             <input
               id="map-depart"
               type="datetime-local"
@@ -233,10 +262,10 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
             />
           </label>
           <button className="primary" type="submit">
-            Match my trip
+            Match my trip <span>→</span>
           </button>
           {tripError ? (
-            <p role="alert" className="map-trip-error">
+            <p role="alert" className="trip-error">
               {tripError}
             </p>
           ) : null}
@@ -246,32 +275,71 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
           <MapCanvas routes={routes} markers={markers} fit={fit} onSelectRoute={setSelectedId} />
 
           <div className="map-panel">
-            {isLoading ? <p className="map-panel-intro">Loading rides…</p> : null}
+            <div className="panel-head">
+              <h3>{heading}</h3>
+              {!isLoading && !loadError ? (
+                <span className="panel-count">
+                  {count} {count === 1 ? 'ride' : 'rides'}
+                </span>
+              ) : null}
+            </div>
+
+            {isLoading ? (
+              <div className="map-state">
+                <strong>Finding rides</strong>
+                <p>Reading the ride board and placing each trip on the map.</p>
+              </div>
+            ) : null}
+
             {loadError ? (
-              <p role="alert" className="map-trip-error">
-                {loadError}
-              </p>
+              <div className="map-state" role="alert">
+                <strong>{loadError}</strong>
+                <p>The rides may still be there. Check your connection and load them again.</p>
+                <button type="button" onClick={() => void load()}>
+                  Try again
+                </button>
+              </div>
             ) : null}
 
-            {!isLoading && !loadError && !trip ? (
-              <p className="map-panel-intro">
-                Showing {located.length} upcoming {located.length === 1 ? 'ride' : 'rides'}. Enter
-                your trip above to see which of them share your route.
-              </p>
+            {!isLoading && !loadError && located.length === 0 ? (
+              <div className="map-state">
+                <strong>No upcoming rides yet</strong>
+                <p>
+                  When someone offers a trip on the Rides offered page, it shows up here with its
+                  route drawn on the map.
+                </p>
+              </div>
             ) : null}
 
-            {trip && matches.length === 0 && !isLoading ? (
-              <p className="map-panel-intro">
-                No upcoming ride overlaps this route within an hour and a half of your departure.
-                Try a wider time or a different starting point.
-              </p>
+            {!isLoading && !loadError && located.length > 0 && !trip ? (
+              <div className="map-state">
+                <strong>Add your trip to see the overlap</strong>
+                <p>
+                  These {located.length} {located.length === 1 ? 'ride is' : 'rides are'} on the map
+                  already. Fill in where you are going and we will rank them by how much of your
+                  route they share.
+                </p>
+              </div>
             ) : null}
 
-            {matches.map((match, index) => {
+            {trip && !isLoading && !loadError && matches.length === 0 ? (
+              <div className="map-state">
+                <strong>Nothing overlaps this trip yet</strong>
+                <p>
+                  No upcoming ride runs your way within 90 minutes of your departure. Try a
+                  different time, or post a ride request so a driver can find you.
+                </p>
+              </div>
+            ) : null}
+
+            {matches.map((match) => {
               const entry = byId.get(match.rideId)
               if (!entry) return null
+
               const isSelected = selected?.rideId === match.rideId
               const share = Math.round(match.routeMatch * 100)
+              const boardAt = clamp01(match.board.t)
+              const alightAt = clamp01(match.alight.t)
 
               return (
                 <button
@@ -281,41 +349,72 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
                   aria-pressed={isSelected}
                   onClick={() => setSelectedId(match.rideId)}
                 >
-                  <span className="match-rank">
-                    {index === 0 ? 'Best match' : `Option ${index + 1}`}
+                  <span className="match-top">
+                    <span className="match-share">
+                      {share}%<small>of your route</small>
+                    </span>
+                    <span
+                      className="match-swatch"
+                      style={{ background: colorFor(match.rideId) }}
+                      aria-hidden="true"
+                    />
                   </span>
-                  <span className="destination">
+
+                  <span className="match-route">
                     {entry.ride.origin} <span className="route-arrow">→</span>{' '}
                     {entry.ride.destination}
                   </span>
-                  <span className="driver-rating">
-                    {entry.ride.driver?.display_name ?? 'Campus driver'} · $
+                  <span className="match-meta">
+                    {entry.ride.driver?.display_name ?? 'Campus driver'} ·{' '}
+                    {formatDeparture(entry.ride.departure_at)} · $
                     {Number(entry.ride.price_per_seat).toFixed(0)} · {entry.ride.seats_available}{' '}
-                    open
+                    {entry.ride.seats_available === 1 ? 'seat' : 'seats'} open
                   </span>
-                  <span className={index === 0 ? 'match-share is-best' : 'match-share'}>
-                    {share}% route match
+
+                  <span className="route-ribbon" aria-hidden="true">
+                    <i
+                      style={{
+                        left: `${boardAt * 100}%`,
+                        width: `${Math.max(2, (alightAt - boardAt) * 100)}%`,
+                      }}
+                    />
                   </span>
+                  <span className="ribbon-legend">
+                    <span>their start</span>
+                    <span>you ride the highlighted leg</span>
+                    <span>their end</span>
+                  </span>
+
                   {isSelected && detail ? (
                     <span className="match-payoff">
-                      {detail.meetup.label
-                        ? `Meet at ${detail.meetup.label}`
-                        : 'Meet at the marked point on the map'}
-                      {' · '}
-                      {detail.payoff.walkMinutes} min walk
-                      {detail.payoff.minutesSaved !== null
-                        ? ` · saves you about ${detail.payoff.minutesSaved} min`
-                        : ''}
+                      {detail.meetup.label ? (
+                        <>
+                          Meet at <b>{detail.meetup.label}</b>
+                        </>
+                      ) : (
+                        'Meet at the marked point on the map'
+                      )}
+                      , a <b>{detail.payoff.walkMinutes} minute</b> walk
+                      {detail.payoff.minutesSaved !== null ? (
+                        <>
+                          {' '}
+                          — about <b>{detail.payoff.minutesSaved} minutes</b> quicker than getting
+                          to where they set off, estimated.
+                        </>
+                      ) : (
+                        '.'
+                      )}
                     </span>
                   ) : null}
                 </button>
               )
             })}
 
-            {unmapped > 0 ? (
-              <p className="place-note">
-                {unmapped} {unmapped === 1 ? 'ride is' : 'rides are'} not shown on the map because
-                their locations could not be found. They are still on the Rides offered page.
+            {unmapped > 0 && !isLoading && !loadError ? (
+              <p className="panel-note">
+                {unmapped} {unmapped === 1 ? 'ride is' : 'rides are'} missing from the map because
+                we could not place {unmapped === 1 ? 'its' : 'their'} pickup or drop-off. They are
+                still listed on the Rides offered page.
               </p>
             ) : null}
           </div>
