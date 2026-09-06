@@ -1,3 +1,7 @@
+> **Superseded** by `2026-09-05-trip-match-map-design.md`.
+> This version was written against the old static `DemoSite/` build and
+> assumed hardcoded demo rides. The app is now React + Supabase.
+
 # CampusCarpool Smart Route Map Design
 
 ## Goal
