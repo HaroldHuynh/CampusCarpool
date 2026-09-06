@@ -344,7 +344,7 @@ function RidesPage({
                           disabled={!ride.matchedRequestId}
                           onClick={() => onReviewOffer(ride.matchedRequestId!)}
                         >
-                          Offered to you by <strong>{ride.driver?.display_name ?? 'your driver'}</strong>
+                          Offered to you
                         </button>
                       ) : ride.mySeat ? (
                         <button
