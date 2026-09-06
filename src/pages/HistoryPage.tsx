@@ -255,6 +255,25 @@ function HistoryPage({
       .catch(() => {})
   }, [])
 
+  // Chrome's address autofill stores one combined name and drops it into
+  // whichever field its heuristics pick (often "Last name"). Whenever a value
+  // arrives with a space, treat it as a full name and split it across both
+  // fields; a space-free value is a normal single-field edit.
+  function handleNameInput(field: 'first' | 'last', raw: string) {
+    if (/\S\s+\S/.test(raw.trim())) {
+      const [first, last] = splitFullName(raw)
+      setFirstName(first)
+      setLastName(last)
+      return
+    }
+
+    if (field === 'first') {
+      setFirstName(raw)
+    } else {
+      setLastName(raw)
+    }
+  }
+
   async function handleSaveDetails(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage('')
@@ -360,34 +379,22 @@ function HistoryPage({
               First name
               <input
                 id="historyFirstName"
-                name="name"
+                name="fname"
                 type="text"
-                autoComplete="name"
+                autoComplete="given-name"
                 value={firstName}
-                onChange={(event) => {
-                  // Chrome's address autofill only has a single combined name,
-                  // so a value with a space is a full name to split across
-                  // both fields; anything else is a plain first-name edit.
-                  const raw = event.target.value
-                  if (/\s/.test(raw.trim())) {
-                    const [first, last] = splitFullName(raw)
-                    setFirstName(first)
-                    setLastName(last)
-                  } else {
-                    setFirstName(raw)
-                  }
-                }}
+                onChange={(event) => handleNameInput('first', event.target.value)}
               />
             </label>
             <label htmlFor="historyLastName">
               Last name
               <input
                 id="historyLastName"
-                name="family-name"
+                name="lname"
                 type="text"
                 autoComplete="family-name"
                 value={lastName}
-                onChange={(event) => setLastName(event.target.value)}
+                onChange={(event) => handleNameInput('last', event.target.value)}
               />
             </label>
           </div>
