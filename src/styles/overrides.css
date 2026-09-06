@@ -316,6 +316,102 @@
   margin-top: 0;
 }
 
+/* ---------- post details, locations, and member profiles ---------- */
+
+.trip-field {
+  position: relative;
+  display: grid;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.trip-field input,
+#offer-form textarea,
+#request-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  outline-color: var(--green);
+  font: inherit;
+}
+
+.trip-field input {
+  height: 44px;
+  padding: 0 12px;
+}
+
+#offer-form textarea,
+#request-form textarea {
+  min-height: 76px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.picker-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 12;
+  overflow: hidden;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 22px rgba(33, 62, 51, 0.14);
+}
+
+.picker-options button {
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.picker-options button:hover,
+.picker-options button:focus-visible { background: var(--mint); }
+.picker-note { color: var(--muted); font-size: 10px; font-weight: 400; }
+
+.profile-trigger {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.profile-trigger:not(:disabled):hover { color: var(--green); text-decoration: underline; }
+.profile-trigger:disabled { cursor: default; }
+.profile-trigger.driver-rating { color: #8d6518; font-size: 9px; font-weight: 700; }
+.profile-trigger .place-note { text-align: left; }
+.post-description { display: block; max-width: 310px; margin-top: 6px; color: var(--muted); font-size: 11px; line-height: 1.35; }
+
+.profile-card-dialog { display: grid; gap: 14px; padding: 22px 30px 28px; }
+.profile-card-loading, .profile-card-rating, .profile-contact { margin: 0; }
+.profile-card-rating { color: #8d6518; font-weight: 700; }
+.profile-contact { padding: 11px 12px; border-radius: 8px; background: var(--mint); font-size: 13px; }
+.profile-contact.is-private { color: var(--muted); background: #f5f7f5; }
+.profile-reviews h3 { margin: 4px 0 8px; font-size: 16px; }
+.profile-reviews article { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 12px; }
+.profile-reviews article span { color: #a36b00; letter-spacing: 1px; }
+.review-empty { color: var(--muted); font-size: 12px; }
+
+@media (max-width: 800px) {
+  .profile-card-dialog { padding-left: 21px; padding-right: 21px; }
+}
+
 
 /* ---------- board banner ---------- */
 
@@ -378,7 +474,10 @@
 
   .board-banner-actions {
     width: 100%;
-    justify-content: space-between;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
   }
 }
 

@@ -35,6 +35,22 @@ export const SEED_PLACES: Place[] = [
   },
   { id: 'dexter', label: 'Dexter Lawn, San Luis Obispo', lat: 35.3009, lng: -120.6625, category: 'campus' },
   {
+    id: 'poly-canyon-village',
+    label: 'Poly Canyon Village, San Luis Obispo',
+    lat: 35.3145,
+    lng: -120.6658,
+    category: 'campus',
+    aliases: ['pcv', 'poly canyon village', 'pvc'],
+  },
+  {
+    id: 'trinity',
+    label: 'Trinity Hall, San Luis Obispo',
+    lat: 35.3029,
+    lng: -120.6601,
+    category: 'campus',
+    aliases: ['trinity', 'trinity hall', 'trinity dorm', 'pyt trinity'],
+  },
+  {
     id: 'slo-transit',
     label: 'SLO Transit Center',
     lat: 35.2793,

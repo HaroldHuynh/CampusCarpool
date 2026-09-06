@@ -12,6 +12,20 @@ export type Driver = {
   rating_count: number
 }
 
+export type Review = {
+  id: string
+  stars: number
+  created_at: string
+  reviewer_name: string
+}
+
+export type ProfileCard = Driver & {
+  contact_method: 'phone' | 'instagram' | null
+  contact_value: string | null
+  contact_available: boolean
+  reviews: Review[]
+}
+
 export type RideStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
 export type SeatStatus = 'pending' | 'accepted' | 'declined'
 
@@ -29,6 +43,11 @@ export type OfferedRide = {
   departure_at: string
   seats_available: number
   price_per_seat: number
+  note: string | null
+  origin_lat: number | null
+  origin_lng: number | null
+  destination_lat: number | null
+  destination_lng: number | null
   driver_profile_id: string | null
   driver: Driver | null
   status: RideStatus
@@ -47,6 +66,11 @@ export type RideRequest = {
   destination: string
   departure_at: string
   price_offer: number
+  note: string | null
+  origin_lat: number | null
+  origin_lng: number | null
+  destination_lat: number | null
+  destination_lng: number | null
   requester_profile_id: string | null
   is_closed: boolean
 }
@@ -88,7 +112,7 @@ export async function fetchOfferedRides(): Promise<OfferedRide[]> {
   const { data, error } = await getSupabaseClient()
     .from('rides')
     .select(
-      'id, origin, destination, departure_at, seats_available, price_per_seat, driver_profile_id, status, started_at, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count), ride_reservations(id, rider_name, rider_profile_id, status)',
+      'id, origin, destination, departure_at, seats_available, price_per_seat, note, origin_lat, origin_lng, destination_lat, destination_lng, driver_profile_id, status, started_at, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count), ride_reservations(id, rider_name, rider_profile_id, status)',
     )
     .gte('departure_at', new Date().toISOString())
     .order('departure_at', { ascending: true })
@@ -111,6 +135,11 @@ export async function fetchOfferedRides(): Promise<OfferedRide[]> {
     departure_at: row.departure_at as string,
     seats_available: Number(row.seats_available),
     price_per_seat: Number(row.price_per_seat),
+    note: (row.note as string) ?? null,
+    origin_lat: row.origin_lat === null ? null : Number(row.origin_lat),
+    origin_lng: row.origin_lng === null ? null : Number(row.origin_lng),
+    destination_lat: row.destination_lat === null ? null : Number(row.destination_lat),
+    destination_lng: row.destination_lng === null ? null : Number(row.destination_lng),
     driver_profile_id: (row.driver_profile_id as string) ?? null,
     driver: one(row.driver as Driver | Driver[] | null),
     status: (row.status as RideStatus) ?? 'scheduled',
@@ -127,6 +156,9 @@ export async function offerRide(input: {
   departureAt: string
   seatsAvailable: number
   pricePerSeat: number
+  note: string
+  originPoint: { lat: number; lng: number } | null
+  destinationPoint: { lat: number; lng: number } | null
 }) {
   const supabase = getSupabaseClient()
   const { data: userData } = await supabase.auth.getUser()
@@ -148,6 +180,11 @@ export async function offerRide(input: {
     departure_at: new Date(input.departureAt).toISOString(),
     seats_available: input.seatsAvailable,
     price_per_seat: input.pricePerSeat,
+    note: input.note.trim() || null,
+    origin_lat: input.originPoint?.lat ?? null,
+    origin_lng: input.originPoint?.lng ?? null,
+    destination_lat: input.destinationPoint?.lat ?? null,
+    destination_lng: input.destinationPoint?.lng ?? null,
   })
 
   if (error) {
@@ -228,7 +265,7 @@ export async function fetchRideRequests(): Promise<RideRequest[]> {
   const { data, error } = await getSupabaseClient()
     .from('ride_requests')
     .select(
-      'id, rider_name, contact_info, origin, destination, departure_at, price_offer, requester_profile_id, is_closed, requester:campus_profiles!requester_profile_id(display_name, rating_average, rating_count)',
+      'id, rider_name, contact_info, origin, destination, departure_at, price_offer, note, origin_lat, origin_lng, destination_lat, destination_lng, requester_profile_id, is_closed, requester:campus_profiles!requester_profile_id(display_name, rating_average, rating_count)',
     )
     .eq('is_closed', false)
     .gte('departure_at', new Date().toISOString())
@@ -249,6 +286,9 @@ export async function postRideRequest(input: {
   destination: string
   departureAt: string
   priceOffer: number
+  note: string
+  originPoint: { lat: number; lng: number } | null
+  destinationPoint: { lat: number; lng: number } | null
 }) {
   const supabase = getSupabaseClient()
   const profile = await getMyProfile()
@@ -274,6 +314,11 @@ export async function postRideRequest(input: {
     destination: input.destination.trim(),
     departure_at: new Date(input.departureAt).toISOString(),
     price_offer: input.priceOffer,
+    note: input.note.trim() || null,
+    origin_lat: input.originPoint?.lat ?? null,
+    origin_lng: input.originPoint?.lng ?? null,
+    destination_lat: input.destinationPoint?.lat ?? null,
+    destination_lng: input.destinationPoint?.lng ?? null,
     requester_profile_id: profile.id,
   })
 
@@ -327,7 +372,7 @@ export async function fetchHistory(profileId: string) {
     supabase
       .from('ride_requests')
       .select(
-        'id, rider_name, contact_info, origin, destination, departure_at, price_offer, requester_profile_id, is_closed',
+        'id, rider_name, contact_info, origin, destination, departure_at, price_offer, note, requester_profile_id, is_closed',
       )
       .eq('requester_profile_id', profileId)
       .eq('is_closed', false)
@@ -377,4 +422,21 @@ export async function rateUser(rideId: string, raterId: string, ratedId: string,
   if (error) {
     throw error
   }
+}
+
+export async function fetchProfileCard(profileId: string): Promise<ProfileCard> {
+  const { data, error } = await getSupabaseClient().rpc('get_profile_card', {
+    target_profile_id: profileId,
+  })
+  if (error) throw error
+
+  const row = one(data as Omit<ProfileCard, 'reviews'> | Omit<ProfileCard, 'reviews'>[] | null)
+  if (!row) throw new Error('Profile is unavailable.')
+
+  const { data: reviews, error: reviewsError } = await getSupabaseClient().rpc('get_profile_reviews', {
+    target_profile_id: profileId,
+  })
+  if (reviewsError) throw reviewsError
+
+  return { ...row, reviews: (reviews ?? []) as Review[] }
 }

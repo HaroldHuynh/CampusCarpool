@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Modal, formatWhen, ratingLabel } from '../components/Shell'
 import PageBanner from '../components/PageBanner'
 import MapButton from '../components/MapButton'
+import LocationPicker, { type PickedLocation } from '../components/LocationPicker'
+import ProfileCardDialog from '../components/ProfileCardDialog'
 import RideMapDialog from '../map/RideMapDialog'
 import {
   closeRideRequest,
@@ -50,6 +52,11 @@ function RidesPage({
   const [time, setTime] = useState('')
   const [seats, setSeats] = useState('1')
   const [price, setPrice] = useState('20')
+  const [description, setDescription] = useState('')
+  const [originPoint, setOriginPoint] = useState<PickedLocation | null>(null)
+  const [destinationPoint, setDestinationPoint] = useState<PickedLocation | null>(null)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [profileId, setProfileId] = useState<string | null>(null)
   const [formError, setFormError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
@@ -105,6 +112,10 @@ function RidesPage({
   async function handleOffer(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormError('')
+    if (!originPoint || !destinationPoint) {
+      setFormError('Choose a suggested pickup and drop-off address so the map uses the right place.')
+      return
+    }
     setIsSaving(true)
 
     try {
@@ -114,11 +125,17 @@ function RidesPage({
         departureAt: `${date}T${time}`,
         seatsAvailable: Number(seats),
         pricePerSeat: Number(price),
+        note: description,
+        originPoint,
+        destinationPoint,
       })
       setOrigin('')
       setDestination('')
       setDate('')
       setTime('')
+      setDescription('')
+      setOriginPoint(null)
+      setDestinationPoint(null)
       onCloseModal()
       onToast('Your ride offer is live!')
       await load()
@@ -189,8 +206,14 @@ function RidesPage({
                       <span className="destination">
                         {ride.origin} <span className="route-arrow">→</span> {ride.destination}
                       </span>
-                      <span
-                        className="driver-rating"
+                      <button
+                        type="button"
+                        className="profile-trigger driver-rating"
+                        disabled={!ride.driver_profile_id || isMine}
+                        onClick={() => {
+                          setProfileId(ride.driver_profile_id)
+                          setProfileOpen(true)
+                        }}
                         title={
                           ride.driver && ride.driver.rating_count
                             ? `${ride.driver.display_name}: ${Number(ride.driver.rating_average).toFixed(1)} out of 5 from ${ride.driver.rating_count} rating${ride.driver.rating_count === 1 ? '' : 's'}`
@@ -199,7 +222,8 @@ function RidesPage({
                       >
                         {isMine ? 'You' : (ride.driver?.display_name ?? 'Campus driver')} ·{' '}
                         {ratingLabel(ride.driver)}
-                      </span>
+                      </button>
+                      {ride.note ? <span className="post-description">{ride.note}</span> : null}
                     </td>
                     <td>
                       <strong>{when.date}</strong>
@@ -299,25 +323,11 @@ function RidesPage({
         title="Share your empty seats"
       >
         <form id="offer-form" onSubmit={handleOffer}>
+          <LocationPicker id="offer-origin" label="Pickup address or place" value={origin} placeholder="Start typing an address, dorm, or campus spot" onChange={setOrigin} onPick={setOriginPoint} required />
+          <LocationPicker id="offer-destination" label="Drop-off address or place" value={destination} placeholder="Start typing an address, airport, or city" onChange={setDestination} onPick={setDestinationPoint} bias={originPoint} required />
           <label>
-            Leaving from
-            <input
-              value={origin}
-              maxLength={120}
-              placeholder="Campus, dorm, or address"
-              required
-              onChange={(event) => setOrigin(event.target.value)}
-            />
-          </label>
-          <label>
-            Going to
-            <input
-              value={destination}
-              maxLength={120}
-              placeholder="City, airport, or event"
-              required
-              onChange={(event) => setDestination(event.target.value)}
-            />
+            Details <small>Optional — add pickup notes, luggage space, or anything riders should know.</small>
+            <textarea value={description} maxLength={300} placeholder="Example: I can meet at the PCV parking lot." onChange={(event) => setDescription(event.target.value)} />
           </label>
           <div className="form-row two-col">
             <label>
@@ -402,6 +412,7 @@ function RidesPage({
           onToast('Request closed.')
         }}
       />
+      <ProfileCardDialog profileId={profileId} open={profileOpen} onClose={() => setProfileOpen(false)} />
     </main>
   )
 }

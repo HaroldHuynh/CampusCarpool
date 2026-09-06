@@ -42,11 +42,24 @@ async function plot<T>(
   rows: T[],
   origin: (row: T) => string,
   destination: (row: T) => string,
+  points: (row: T) => {
+    originLat: number | null
+    originLng: number | null
+    destinationLat: number | null
+    destinationLng: number | null
+  },
 ): Promise<{ row: T; from: ResolvedLocation; to: ResolvedLocation }[]> {
   const settled = await Promise.all(
     rows.map(async (row) => {
-      const from = await resolveLocation(origin(row))
-      const to = await resolveLocation(destination(row), { bias: from })
+      const stored = points(row)
+      const from =
+        stored.originLat !== null && stored.originLng !== null
+          ? { lat: stored.originLat, lng: stored.originLng, label: origin(row) }
+          : await resolveLocation(origin(row))
+      const to =
+        stored.destinationLat !== null && stored.destinationLng !== null
+          ? { lat: stored.destinationLat, lng: stored.destinationLng, label: destination(row) }
+          : await resolveLocation(destination(row), { bias: from })
       return from && to ? { row, from, to } : null
     }),
   )
@@ -108,11 +121,23 @@ export default function RideMapDialog({
         offered,
         (r) => r.origin,
         (r) => r.destination,
+        (r) => ({
+          originLat: r.origin_lat,
+          originLng: r.origin_lng,
+          destinationLat: r.destination_lat,
+          destinationLng: r.destination_lng,
+        }),
       )
       const plottedRequests = await plot(
         asked,
         (r) => r.origin,
         (r) => r.destination,
+        (r) => ({
+          originLat: r.origin_lat,
+          originLng: r.origin_lng,
+          destinationLat: r.destination_lat,
+          destinationLng: r.destination_lng,
+        }),
       )
 
       setRides(plottedRides.map(({ row, from, to }) => ({ kind: 'ride', ride: row, from, to })))

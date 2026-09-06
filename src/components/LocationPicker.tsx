@@ -2,10 +2,20 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { searchPlaces, type GeocodeResult } from '../map/geocode'
 import { SEED_PLACES } from '../map/locations'
 
+export type PickedLocation = {
+  label: string
+  lat: number
+  lng: number
+}
+
 function seedMatches(query: string): GeocodeResult[] {
   const q = query.trim().toLowerCase()
   if (!q) return []
-  return SEED_PLACES.filter((place) => place.label.toLowerCase().includes(q))
+  return SEED_PLACES.filter(
+    (place) =>
+      place.label.toLowerCase().includes(q) ||
+      (place.aliases ?? []).some((alias) => alias.toLowerCase().includes(q)),
+  )
     .slice(0, 5)
     .map((place) => ({
       lat: place.lat,
@@ -20,14 +30,19 @@ export default function LocationPicker({
   label,
   value,
   onChange,
+  onPick,
   placeholder,
   bias,
+  required = false,
 }: {
   id: string
   label: string
   value: string
   onChange: (label: string) => void
+  /** Persists an exact point with the post, avoiding a later ambiguous lookup. */
+  onPick?: (location: PickedLocation | null) => void
   placeholder?: string
+  required?: boolean
   /** Pulls results toward a known point — see searchPlaces. */
   bias?: { lat: number; lng: number } | null
 }) {
@@ -78,6 +93,7 @@ export default function LocationPicker({
   function choose(option: GeocodeResult) {
     picked.current = true
     onChange(option.label)
+    onPick?.({ label: option.label, lat: option.lat, lng: option.lng })
     setOpen(false)
   }
 
@@ -88,6 +104,7 @@ export default function LocationPicker({
         id={id}
         value={value}
         placeholder={placeholder}
+        required={required}
         autoComplete="off"
         role="combobox"
         aria-expanded={open && options.length > 0}
@@ -97,6 +114,7 @@ export default function LocationPicker({
           // Keep the parent in step with every keystroke: a trip typed out in
           // full is still a trip, even if nobody opens the suggestion list.
           onChange(event.target.value)
+          onPick?.(null)
           setOpen(true)
         }}
         onFocus={() => setOpen(true)}

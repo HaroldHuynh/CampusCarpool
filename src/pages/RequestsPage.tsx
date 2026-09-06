@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Modal, formatWhen } from '../components/Shell'
 import PageBanner from '../components/PageBanner'
 import MapButton from '../components/MapButton'
+import LocationPicker, { type PickedLocation } from '../components/LocationPicker'
+import ProfileCardDialog from '../components/ProfileCardDialog'
 import RideMapDialog from '../map/RideMapDialog'
 import {
   closeRideRequest,
@@ -58,6 +60,12 @@ function RequestsPage({
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [price, setPrice] = useState('20')
+  const [description, setDescription] = useState('')
+  const [originPoint, setOriginPoint] = useState<PickedLocation | null>(null)
+  const [destinationPoint, setDestinationPoint] = useState<PickedLocation | null>(null)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [profileId, setProfileId] = useState<string | null>(null)
+  const [profileContact, setProfileContact] = useState<string | null>(null)
 
   async function load() {
     setLoadError('')
@@ -92,6 +100,10 @@ function RequestsPage({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormError('')
+    if (!originPoint || !destinationPoint) {
+      setFormError('Choose a suggested pickup and drop-off address so the map uses the right place.')
+      return
+    }
     setIsSaving(true)
 
     try {
@@ -100,11 +112,17 @@ function RequestsPage({
         destination,
         departureAt: `${date}T${time}`,
         priceOffer: Number(price),
+        note: description,
+        originPoint,
+        destinationPoint,
       })
       setOrigin('')
       setDestination('')
       setDate('')
       setTime('')
+      setDescription('')
+      setOriginPoint(null)
+      setDestinationPoint(null)
       onCloseModal()
       onToast('Your ride request is live!')
       await load()
@@ -188,7 +206,15 @@ function RequestsPage({
                     <td>
                       <div className="rider">
                         <span className={`avatar color-${index % 4}`}>{initials(row.rider_name)}</span>
-                        <span
+                        <button
+                          type="button"
+                          className="profile-trigger"
+                          disabled={!row.requester_profile_id || isMine}
+                          onClick={() => {
+                            setProfileId(row.requester_profile_id)
+                            setProfileContact(row.contact_info || null)
+                            setProfileOpen(true)
+                          }}
                           title={
                             row.requester && row.requester.rating_count
                               ? `${row.rider_name}: ${Number(row.requester.rating_average).toFixed(1)} out of 5 from ${row.requester.rating_count} rating${row.requester.rating_count === 1 ? '' : 's'}`
@@ -201,11 +227,12 @@ function RequestsPage({
                               ? `★ ${Number(row.requester.rating_average).toFixed(1)} (${row.requester.rating_count})`
                               : '☆ New'}
                           </small>
-                        </span>
+                        </button>
                       </div>
                     </td>
                     <td>
                       <span className="location">{row.origin}</span>
+                      {row.note ? <span className="post-description">{row.note}</span> : null}
                     </td>
                     <td>
                       <span className="destination">{row.destination}</span>
@@ -261,25 +288,11 @@ function RequestsPage({
         title="Where do you need to go?"
       >
         <form id="request-form" onSubmit={handleSubmit}>
+          <LocationPicker id="request-origin" label="Pickup address or place" value={origin} placeholder="Start typing an address, dorm, or campus spot" onChange={setOrigin} onPick={setOriginPoint} required />
+          <LocationPicker id="request-destination" label="Drop-off address or place" value={destination} placeholder="Start typing an address, airport, or city" onChange={setDestination} onPick={setDestinationPoint} bias={originPoint} required />
           <label>
-            Leaving from
-            <input
-              value={origin}
-              maxLength={120}
-              placeholder="Campus, dorm, or address"
-              required
-              onChange={(event) => setOrigin(event.target.value)}
-            />
-          </label>
-          <label>
-            Going to
-            <input
-              value={destination}
-              maxLength={120}
-              placeholder="City, airport, or event"
-              required
-              onChange={(event) => setDestination(event.target.value)}
-            />
+            Details <small>Optional — add pickup notes or anything a driver should know.</small>
+            <textarea value={description} maxLength={300} placeholder="Example: I have one suitcase and can meet at the main entrance." onChange={(event) => setDescription(event.target.value)} />
           </label>
           <div className="form-row two-col">
             <label>
@@ -350,6 +363,7 @@ function RequestsPage({
           await load()
         }}
       />
+      <ProfileCardDialog profileId={profileId} contactOverride={profileContact} open={profileOpen} onClose={() => setProfileOpen(false)} />
     </main>
   )
 }

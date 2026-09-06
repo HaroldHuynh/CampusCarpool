@@ -116,6 +116,13 @@ describe('resolveLocation abbreviations and loose matching', () => {
     expect(result?.lat).toBeLessThan(35.5)
   })
 
+  it('keeps the Trinity dorm alias on the Cal Poly map instead of geocoding a distant Trinity', async () => {
+    const search = vi.fn()
+    const result = await resolveLocation('pyt trinity', { search, storage: memoryStorage() })
+    expect(result?.label).toBe('Trinity Hall, San Luis Obispo')
+    expect(search).not.toHaveBeenCalled()
+  })
+
   it('does not match a fragment in the middle of a word', async () => {
     const search = vi.fn().mockResolvedValue([])
     await resolveLocation('exte', { search, storage: memoryStorage() })
