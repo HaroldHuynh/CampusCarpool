@@ -23,7 +23,28 @@ export function AppHeader({
   onClearNotices: () => void
 }) {
   const [open, setOpen] = useState(false)
+  const [flash, setFlash] = useState<Notice | null>(null)
   const bellRef = useRef<HTMLDivElement>(null)
+  const seen = useRef<Set<string> | null>(null)
+
+  // Only announce notices that arrive after the initial inbox load. Opening
+  // the app with existing notices should not produce a surprise popup.
+  useEffect(() => {
+    if (seen.current === null) {
+      seen.current = new Set(notices.map((notice) => notice.id))
+      return
+    }
+
+    const fresh = notices.find((notice) => !seen.current!.has(notice.id))
+    seen.current = new Set(notices.map((notice) => notice.id))
+    if (fresh) setFlash(fresh)
+  }, [notices])
+
+  useEffect(() => {
+    if (!flash) return
+    const timer = window.setTimeout(() => setFlash(null), 4500)
+    return () => window.clearTimeout(timer)
+  }, [flash])
 
   function openNotice(notice: Notice) {
     if (notice.goTo) {
@@ -128,6 +149,19 @@ export function AppHeader({
             </svg>
             {notices.length > 0 ? <i className="bell-dot" /> : null}
           </button>
+
+          {flash && !open ? (
+            <button
+              type="button"
+              className="bell-flash"
+              onClick={() => {
+                setFlash(null)
+                setOpen(true)
+              }}
+            >
+              {flash.text}
+            </button>
+          ) : null}
 
           {open ? (
             <div className="bell-menu" role="menu">

@@ -540,6 +540,68 @@
   color: var(--ink);
 }
 
+/* New alerts sit beside the bell on wide headers, where they have room to
+   read naturally. Narrow headers use the space below the bell instead. */
+.bell-flash {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 14px);
+  z-index: 45;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 120px));
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--ink);
+  color: #ffffff;
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(33, 62, 51, 0.22);
+  transform: translateY(-50%);
+  animation: bell-flash-in 0.18s ease-out;
+}
+
+.bell-flash::after {
+  content: '';
+  position: absolute;
+  top: calc(50% - 5px);
+  right: -5px;
+  width: 9px;
+  height: 9px;
+  background: var(--ink);
+  border-top: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  transform: rotate(45deg);
+}
+
+@media (max-width: 720px) {
+  .bell-flash {
+    top: calc(100% + 16px);
+    right: 0;
+    max-width: min(260px, calc(100vw - 32px));
+    transform: none;
+  }
+
+  .bell-flash::after {
+    top: -5px;
+    right: 12px;
+    border-top: 1px solid var(--line);
+    border-right: none;
+    border-left: 1px solid var(--line);
+  }
+}
+
+@keyframes bell-flash-in {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bell-flash { animation: none; }
+}
+
 /* ---------- stop layout shifting ---------- */
 
 /* Request seat / Withdraw / Asking… are different widths, so the column
