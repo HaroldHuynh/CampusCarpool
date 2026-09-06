@@ -681,7 +681,6 @@ function App() {
   return (
     <main className="auth-shell">
       <section className="auth-card" aria-labelledby="auth-title">
-        <p className="eyebrow">Cal Poly only</p>
         <h1 id="auth-title">CampusCarpool</h1>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -723,13 +722,18 @@ function App() {
           ) : null}
 
           <label htmlFor="email">Cal Poly email</label>
+          {/* Deliberately not type="email": the browser rejects a bare
+              username before the form ever submits. */}
           <input
             id="email"
             name="email"
-            type="email"
+            type="text"
+            inputMode="email"
+            autoCapitalize="none"
+            spellCheck={false}
             value={email}
             autoComplete="email"
-            placeholder="you@calpoly.edu"
+            placeholder="you@calpoly.edu or just your username"
             onChange={(event) => setEmail(event.target.value)}
           />
 

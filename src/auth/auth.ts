@@ -32,8 +32,20 @@ export function isProfileIncomplete(row: AccessRequest | null) {
   return !row || !row.first_name || !row.last_name || !row.contact_value
 }
 
+/**
+ * Everyone here is at the same domain, so typing it is busywork: a bare
+ * username is treated as @calpoly.edu. Anything already containing an @ is
+ * left alone, so a wrong domain still fails the check rather than being
+ * silently rewritten.
+ */
 export function normalizeEmail(email: string) {
-  return email.trim().toLowerCase()
+  const trimmed = email.trim().toLowerCase()
+
+  if (trimmed === '' || trimmed.includes('@')) {
+    return trimmed
+  }
+
+  return `${trimmed}${CAL_POLY_EMAIL_DOMAIN}`
 }
 
 export function isCalPolyEmail(email: string) {
