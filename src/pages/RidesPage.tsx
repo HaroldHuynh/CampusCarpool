@@ -276,12 +276,27 @@ function RidesPage({
                     <td>
                       {isMine ? (
                         <span className="own-ride-note">
-                          {ride.requests.some((r) => r.status === 'pending')
-                            ? `${ride.requests.filter((r) => r.status === 'pending').length} awaiting you`
+                          {/* Two kinds of pending seat: one you have to answer,
+                              one the rider has to answer. Saying "awaiting you"
+                              for both told drivers to act when the ball was in
+                              the rider's court. */}
+                          {ride.requests.some(
+                            (r) => r.status === 'pending' && r.initiated_by === 'rider',
+                          )
+                            ? `${ride.requests.filter((r) => r.status === 'pending' && r.initiated_by === 'rider').length} asked to join`
+                            : ride.requests.some(
+                                  (r) => r.status === 'pending' && r.initiated_by === 'driver',
+                                )
+                              ? 'Waiting on rider'
                             : 'Your ride'}
                         </span>
                       ) : ride.mySeat?.status === 'declined' ? (
                         <button className="reserve is-declined" type="button" disabled>Declined</button>
+                      ) : ride.mySeat?.status === 'pending' &&
+                        ride.mySeat.initiated_by === 'driver' ? (
+                        // The driver offered; this rider owes the answer, and
+                        // it is given on their profile.
+                        <span className="own-ride-note">Offered to you — answer on My profile</span>
                       ) : ride.mySeat ? (
                         <button
                           className="reserve is-secondary"

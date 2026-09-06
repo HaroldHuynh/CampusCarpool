@@ -7,6 +7,7 @@ import RidesPage from './pages/RidesPage'
 import HistoryPage from './pages/HistoryPage'
 import { fetchHistory, getMyProfile, type CampusProfile } from './data/api'
 import ContactFields from './components/ContactFields'
+import { useLiveData } from './lib/useLiveData'
 import PasswordField from './components/PasswordField'
 import {
   getAccessRequest,
@@ -234,6 +235,14 @@ function App() {
       setNotices([])
     }
   }
+
+  // The bell has to keep up with the boards: a seat answered in another tab
+  // should raise a notification here without a reload.
+  useLiveData(() => {
+    if (campusProfile) {
+      loadNotices(campusProfile.id)
+    }
+  }, 'notice-feed')
 
   function dismissNotice(id: string) {
     const next = new Set(dismissed)

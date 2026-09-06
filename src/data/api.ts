@@ -34,6 +34,8 @@ export type SeatRequest = {
   rider_name: string
   rider_profile_id: string | null
   status: SeatStatus
+  /** Who started it — decides which side a pending seat is waiting on. */
+  initiated_by: 'rider' | 'driver'
 }
 
 export type OfferedRide = {
@@ -119,7 +121,7 @@ export async function fetchOfferedRides(): Promise<OfferedRide[]> {
   const { data, error } = await getSupabaseClient()
     .from('rides')
     .select(
-      'id, origin, destination, departure_at, seats_available, price_per_seat, note, origin_lat, origin_lng, destination_lat, destination_lng, driver_profile_id, status, started_at, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count), ride_reservations(id, rider_name, rider_profile_id, status)',
+      'id, origin, destination, departure_at, seats_available, price_per_seat, note, origin_lat, origin_lng, destination_lat, destination_lng, driver_profile_id, status, started_at, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count), ride_reservations(id, rider_name, rider_profile_id, status, initiated_by)',
     )
     .gte('departure_at', new Date().toISOString())
     .order('departure_at', { ascending: true })
@@ -386,7 +388,7 @@ export async function fetchHistory(profileId: string) {
   const [offered, reservations, given, requests] = await Promise.all([
     supabase
       .from('rides')
-      .select('*, ride_reservations(id, rider_name, rider_profile_id, status)')
+      .select('*, ride_reservations(id, rider_name, rider_profile_id, status, initiated_by)')
       .eq('driver_profile_id', profileId)
       .order('departure_at'),
     supabase

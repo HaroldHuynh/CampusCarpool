@@ -23,7 +23,40 @@ export function AppHeader({
   onClearNotices: () => void
 }) {
   const [open, setOpen] = useState(false)
+  const [flash, setFlash] = useState<Notice | null>(null)
   const bellRef = useRef<HTMLDivElement>(null)
+  const seen = useRef<Set<string> | null>(null)
+
+  // Announce genuinely new items. The first load is not "new" — everything
+  // would flash at once the moment the page opens.
+  useEffect(() => {
+    if (seen.current === null) {
+      seen.current = new Set(notices.map((n) => n.id))
+      return
+    }
+
+    const fresh = notices.find((n) => !seen.current!.has(n.id))
+    seen.current = new Set(notices.map((n) => n.id))
+
+    if (!fresh) {
+      return
+    }
+
+    setFlash(fresh)
+  }, [notices])
+
+  // The countdown lives on its own so a background refresh cannot cancel it.
+  // `notices` is rebuilt on every realtime update, and a timer started in that
+  // effect was being cleared by the next reload, leaving the bubble on screen.
+  useEffect(() => {
+    if (!flash) {
+      return
+    }
+
+    const timer = window.setTimeout(() => setFlash(null), 4500)
+
+    return () => window.clearTimeout(timer)
+  }, [flash])
 
   // Changing view should dismiss the menu; leaving it hanging over the next
   // page reads like a stuck overlay.
@@ -113,6 +146,19 @@ export function AppHeader({
             {notices.length > 0 ? <i className="bell-dot" /> : null}
           </button>
 
+          {flash && !open ? (
+            <button
+              type="button"
+              className="bell-flash"
+              onClick={() => {
+                setFlash(null)
+                setOpen(true)
+              }}
+            >
+              {flash.text}
+            </button>
+          ) : null}
+
           {open ? (
             <div className="bell-menu" role="menu">
               <div className="bell-head">
@@ -136,6 +182,9 @@ export function AppHeader({
                         className="bell-link"
                         onClick={() => {
                           onChangeView(notice.goTo!)
+                          // Acting on it is the same as reading it; leaving it
+                          // in the list means dismissing everything twice.
+                          onDismissNotice(notice.id)
                           setOpen(false)
                         }}
                       >

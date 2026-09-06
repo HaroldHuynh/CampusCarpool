@@ -643,3 +643,55 @@
     width: min(1140px, 100% - 32px);
   }
 }
+
+/* A new notification announces itself beside the bell for a few seconds, so
+   it is noticed without having to open the menu. */
+.bell-flash {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  z-index: 45;
+  /* The bell wrapper is only as wide as the icon, and an absolutely positioned
+     box shrinks to the space its container offers — which collapsed this to one
+     word per line. Size to the text instead, then cap it. */
+  width: max-content;
+  max-width: min(260px, 70vw);
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--ink);
+  color: #ffffff;
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(33, 62, 51, 0.22);
+  animation: bell-flash-in 0.18s ease-out;
+}
+
+.bell-flash::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  right: 12px;
+  width: 9px;
+  height: 9px;
+  background: var(--ink);
+  border-left: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  transform: rotate(45deg);
+}
+
+@keyframes bell-flash-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bell-flash {
+    animation: none;
+  }
+}
