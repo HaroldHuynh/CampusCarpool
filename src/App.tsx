@@ -413,21 +413,26 @@ function App() {
         // without an access_requests row. Prefer the signup OTP first so the
         // confirmation trigger can create the missing app records.
         if (result.alreadyRegistered) {
+          // resend({type:'signup'}) is a silent no-op for an account that is
+          // already confirmed - it returns no error and sends no email, so the
+          // "we sent a code" screen would be a lie. Try the existing-user OTP
+          // first (that is the common case), and only fall back to the signup
+          // code for an account that was never confirmed.
           try {
-            await resendSignUpCode(submittedEmail)
-            setIsClaiming(false)
-            setNeedsPassword(false)
-          } catch (resendError) {
-            const resendMessage =
-              resendError instanceof Error ? resendError.message : 'Could not send a new code.'
-
-            if (!/already|registered|confirm/i.test(resendMessage)) {
-              throw resendError
-            }
-
             await sendClaimCode(submittedEmail)
             setIsClaiming(true)
             setNeedsPassword(true)
+          } catch (claimError) {
+            const claimMessage =
+              claimError instanceof Error ? claimError.message : 'Could not send a new code.'
+
+            if (!/not confirmed|otp_disabled|signups? not allowed/i.test(claimMessage)) {
+              throw claimError
+            }
+
+            await resendSignUpCode(submittedEmail)
+            setIsClaiming(false)
+            setNeedsPassword(false)
           }
         }
 
