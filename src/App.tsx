@@ -119,7 +119,18 @@ function App() {
   useEffect(() => {
     getCurrentUser()
       .then(enter)
-      .catch((error: Error) => setErrorMessage(error.message))
+      .catch(async () => {
+        // A stored session can outlive its user (deleted account, wiped
+        // project). Drop the dead token and show the sign-in screen rather
+        // than a raw "User from sub claim in JWT does not exist".
+        try {
+          await signOut()
+        } catch {
+          // Already gone; nothing to clear.
+        }
+
+        setCurrentUser(null)
+      })
       .finally(() => setIsBooting(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

@@ -134,7 +134,6 @@ function RequestsPage({
       <PageBanner
         eyebrow="RIDE REQUESTS"
         title="Students looking for a ride"
-        blurb="Students who need a lift. If you're driving that way, reach out."
         primary={{ label: 'Post a request', onClick: onOpenModal }}
         secondary={{ label: 'Browse rides offered →', onClick: onGoToRides }}
       />

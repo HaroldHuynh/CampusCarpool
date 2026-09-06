@@ -11,13 +11,11 @@ type Action = { label: string; onClick: () => void }
 function PageBanner({
   eyebrow,
   title,
-  blurb,
   primary,
   secondary,
 }: {
   eyebrow: string
   title: string
-  blurb: string
   primary: Action
   secondary: Action
 }) {
@@ -26,7 +24,6 @@ function PageBanner({
       <div className="board-banner-copy">
         <p className="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
-        <p className="board-banner-blurb">{blurb}</p>
       </div>
 
       <div className="board-banner-actions">
