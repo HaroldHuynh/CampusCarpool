@@ -296,6 +296,21 @@ function RidesPage({
                       ) : ride.mySeat?.status === 'pending' &&
                         ride.mySeat.initiated_by === 'driver' ? (
                         <span className="seat-request-actions offer-actions">
+                          <span className="offer-summary">
+                            Offered by{' '}
+                            <button
+                              type="button"
+                              className="profile-trigger"
+                              disabled={!ride.driver_profile_id}
+                              onClick={() => {
+                                if (!ride.driver_profile_id) return
+                                setProfileId(ride.driver_profile_id)
+                                setProfileOpen(true)
+                              }}
+                            >
+                              {ride.driver?.display_name ?? 'your driver'}
+                            </button>
+                          </span>
                           <button
                             className="mini accept"
                             type="button"

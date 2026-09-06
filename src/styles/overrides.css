@@ -290,6 +290,23 @@
   flex-shrink: 0;
 }
 
+.offer-actions {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.offer-summary {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.offer-summary .profile-trigger {
+  display: inline;
+  color: var(--ink);
+  font-weight: 700;
+}
+
 .mini {
   border: 1px solid var(--line);
   border-radius: 7px;
