@@ -57,6 +57,8 @@ export type OfferedRide = {
   requests: SeatRequest[]
   /** The signed-in user's own seat request, if any. */
   mySeat: SeatRequest | null
+  /** The rider's open request that this ride was offered to fulfill. */
+  matchedRequestId: number | null
 }
 
 export type RideRequest = {
@@ -118,7 +120,8 @@ export async function getMyProfile(): Promise<CampusProfile | null> {
 }
 
 export async function fetchOfferedRides(): Promise<OfferedRide[]> {
-  const { data, error } = await getSupabaseClient()
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
     .from('rides')
     .select(
       'id, origin, destination, departure_at, seats_available, price_per_seat, note, origin_lat, origin_lng, destination_lat, destination_lng, driver_profile_id, status, started_at, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count), ride_reservations(id, rider_name, rider_profile_id, status, initiated_by)',
@@ -131,6 +134,21 @@ export async function fetchOfferedRides(): Promise<OfferedRide[]> {
   }
 
   const me = await getMyProfile()
+  const matchedRequestByRide = new Map<string, number>()
+
+  if (me) {
+    const { data: matchedRequests, error: matchedRequestsError } = await supabase
+      .from('ride_requests')
+      .select('id, matched_ride_id')
+      .eq('requester_profile_id', me.id)
+      .eq('is_closed', false)
+      .not('matched_ride_id', 'is', null)
+
+    if (matchedRequestsError) throw matchedRequestsError
+    for (const request of matchedRequests ?? []) {
+      if (request.matched_ride_id) matchedRequestByRide.set(request.matched_ride_id, request.id)
+    }
+  }
 
   return (data ?? []).map((row: Record<string, unknown>) => {
     const requests = ((row.ride_reservations as SeatRequest[] | null) ?? []).filter(
@@ -155,6 +173,7 @@ export async function fetchOfferedRides(): Promise<OfferedRide[]> {
     started_at: (row.started_at as string) ?? null,
     requests,
     mySeat: me ? (requests.find((r) => r.rider_profile_id === me.id) ?? null) : null,
+    matchedRequestId: matchedRequestByRide.get(row.id as string) ?? null,
     }
   })
 }

@@ -14,6 +14,7 @@ import {
   offerRide,
   requestSeat,
   cancelSeat,
+  respondToRideOffer,
   type CampusProfile,
   type OfferedRide,
   type RideContact,
@@ -294,9 +295,24 @@ function RidesPage({
                         <button className="reserve is-declined" type="button" disabled>Declined</button>
                       ) : ride.mySeat?.status === 'pending' &&
                         ride.mySeat.initiated_by === 'driver' ? (
-                        // The driver offered; this rider owes the answer, and
-                        // it is given on their profile.
-                        <span className="own-ride-note">Offered to you</span>
+                        <span className="seat-request-actions offer-actions">
+                          <button
+                            className="mini accept"
+                            type="button"
+                            disabled={!ride.matchedRequestId || busyId === `offer:${ride.id}`}
+                            onClick={() => act(`offer:${ride.id}`, () => respondToRideOffer(ride.matchedRequestId!, true), 'Ride accepted.')}
+                          >
+                            Accept
+                          </button>
+                          <button
+                            className="mini"
+                            type="button"
+                            disabled={!ride.matchedRequestId || busyId === `offer:${ride.id}`}
+                            onClick={() => act(`offer:${ride.id}`, () => respondToRideOffer(ride.matchedRequestId!, false), 'Offer declined.')}
+                          >
+                            Decline
+                          </button>
+                        </span>
                       ) : ride.mySeat ? (
                         <button
                           className="reserve is-secondary"
