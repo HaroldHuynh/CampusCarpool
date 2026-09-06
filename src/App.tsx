@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import './styles/auth.css'
 import { AppHeader, SiteFooter, Toast, type Notice, type View } from './components/Shell'
@@ -44,6 +44,7 @@ function App() {
   const [campusProfile, setCampusProfile] = useState<CampusProfile | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
+  const credentialsFormRef = useRef<HTMLFormElement | null>(null)
   const [notices, setNotices] = useState<Notice[]>([])
   const [dismissed, setDismissed] = useState<Set<string>>(() => {
     try {
@@ -96,6 +97,40 @@ function App() {
 
     return () => window.clearTimeout(timer)
   }, [cooldown])
+
+  function syncCredentialsFromForm() {
+    const form = credentialsFormRef.current
+
+    if (!form) {
+      return
+    }
+
+    const formData = new FormData(form)
+    const nextEmail = String(formData.get('email') ?? '')
+    const nextPassword = String(formData.get('password') ?? '')
+
+    if (nextEmail !== email) {
+      setEmail(nextEmail)
+    }
+
+    if (nextPassword !== password) {
+      setPassword(nextPassword)
+    }
+  }
+
+  useEffect(() => {
+    if (step !== 'credentials') {
+      return
+    }
+
+    const timers = [
+      window.setTimeout(syncCredentialsFromForm, 0),
+      window.setTimeout(syncCredentialsFromForm, 250),
+      window.setTimeout(syncCredentialsFromForm, 1000),
+    ]
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer))
+  }, [step, mode, email, password])
 
   async function enter(user: User | null) {
     setCurrentUser(user)
@@ -742,7 +777,13 @@ function App() {
       <section className="auth-card" aria-labelledby="auth-title">
         <h1 id="auth-title">CampusCarpool</h1>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form
+          ref={credentialsFormRef}
+          className="auth-form"
+          onInput={syncCredentialsFromForm}
+          onFocus={syncCredentialsFromForm}
+          onSubmit={handleSubmit}
+        >
           {mode === 'signup' ? (
             <>
               <div className="name-row">
@@ -796,6 +837,7 @@ function App() {
           <label htmlFor="password">Password</label>
           <PasswordField
             id="password"
+            name="password"
             value={password}
             autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
             onChange={setPassword}

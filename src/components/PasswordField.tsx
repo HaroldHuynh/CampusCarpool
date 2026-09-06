@@ -7,11 +7,13 @@ import { useState } from 'react'
  */
 function PasswordField({
   id,
+  name = id,
   value,
   autoComplete,
   onChange,
 }: {
   id: string
+  name?: string
   value: string
   autoComplete: 'new-password' | 'current-password'
   onChange: (next: string) => void
@@ -22,6 +24,7 @@ function PasswordField({
     <span className="password-field">
       <input
         id={id}
+        name={name}
         type={shown ? 'text' : 'password'}
         value={value}
         autoComplete={autoComplete}
