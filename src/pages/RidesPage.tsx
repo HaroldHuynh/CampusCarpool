@@ -164,7 +164,14 @@ function RidesPage({
                       <span className="destination">
                         {ride.origin} <span className="route-arrow">→</span> {ride.destination}
                       </span>
-                      <span className="driver-rating">
+                      <span
+                        className="driver-rating"
+                        title={
+                          ride.driver && ride.driver.rating_count
+                            ? `${ride.driver.display_name}: ${Number(ride.driver.rating_average).toFixed(1)} out of 5 from ${ride.driver.rating_count} rating${ride.driver.rating_count === 1 ? '' : 's'}`
+                            : 'No ratings yet'
+                        }
+                      >
                         {isMine ? 'You' : (ride.driver?.display_name ?? 'Campus driver')} ·{' '}
                         {ratingLabel(ride.driver)}
                       </span>

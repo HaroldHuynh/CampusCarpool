@@ -198,9 +198,19 @@ function RequestsPage({
                     <td>
                       <div className="rider">
                         <span className={`avatar color-${index % 4}`}>{initials(row.rider_name)}</span>
-                        <span>
+                        <span
+                          title={
+                            row.requester && row.requester.rating_count
+                              ? `${row.rider_name}: ${Number(row.requester.rating_average).toFixed(1)} out of 5 from ${row.requester.rating_count} rating${row.requester.rating_count === 1 ? '' : 's'}`
+                              : 'No ratings yet'
+                          }
+                        >
                           {row.rider_name}
-                          <small className="place-note">{row.contact_info}</small>
+                          <small className="place-note">
+                            {row.requester && row.requester.rating_count
+                              ? `★ ${Number(row.requester.rating_average).toFixed(1)} (${row.requester.rating_count})`
+                              : '☆ New'}
+                          </small>
                         </span>
                       </div>
                     </td>

@@ -1,18 +1,40 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export type View = 'requests' | 'rides' | 'profile'
+
+export type Notice = { id: string; text: string; when: string }
 
 export function AppHeader({
   view,
   onChangeView,
   action,
-  onSignOut,
+  notices,
 }: {
   view: View
   onChangeView: (view: View) => void
   action?: { label: string; onClick: () => void }
-  onSignOut: () => void
+  notices: Notice[]
 }) {
+  const [open, setOpen] = useState(false)
+  const bellRef = useRef<HTMLDivElement>(null)
+
+  // Close on any click outside the bell, the way a menu should behave.
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    function onDocClick(event: MouseEvent) {
+      if (bellRef.current && !bellRef.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', onDocClick)
+
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [open])
+
   return (
     <header className="site-header">
       <a
@@ -60,14 +82,43 @@ export function AppHeader({
       </nav>
 
       <div className="header-actions">
-        {action ? (
-          <button className="header-button" type="button" onClick={action.onClick}>
-            {action.label}
+        {/* Rendered even when there is no action, so switching to a view
+            without one does not resize the header and shift the nav. */}
+        <span className="header-action-slot">
+          {action ? (
+            <button className="header-button" type="button" onClick={action.onClick}>
+              {action.label}
+            </button>
+          ) : null}
+        </span>
+
+        <div className="bell-wrap" ref={bellRef}>
+          <button
+            type="button"
+            className="bell"
+            aria-label={`Notifications${notices.length ? ` (${notices.length})` : ''}`}
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+          >
+            <span aria-hidden="true">🔔</span>
+            {notices.length > 0 ? <i className="bell-dot">{notices.length}</i> : null}
           </button>
-        ) : null}
-        <button className="text-button" type="button" onClick={onSignOut}>
-          Sign out
-        </button>
+
+          {open ? (
+            <div className="bell-menu" role="menu">
+              {notices.length === 0 ? (
+                <p className="bell-empty">Nothing new.</p>
+              ) : (
+                notices.map((notice) => (
+                  <div className="bell-item" key={notice.id}>
+                    <span>{notice.text}</span>
+                    <small>{notice.when}</small>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   )
@@ -79,7 +130,6 @@ export function SiteFooter() {
       <a className="brand" href="#">
         <span className="brand-mark">↗</span> campus<span>carpool</span>
       </a>
-      <p>Made for students who are going places.</p>
       <span>© 2026 CampusCarpool</span>
     </footer>
   )

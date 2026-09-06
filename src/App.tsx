@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import './styles/auth.css'
-import { AppHeader, SiteFooter, Toast, type View } from './components/Shell'
+import { AppHeader, SiteFooter, Toast, type Notice, type View } from './components/Shell'
 import RequestsPage from './pages/RequestsPage'
 import RidesPage from './pages/RidesPage'
 import HistoryPage from './pages/HistoryPage'
-import { getMyProfile, type CampusProfile } from './data/api'
+import { fetchHistory, getMyProfile, type CampusProfile } from './data/api'
 import ContactFields from './components/ContactFields'
 import {
   getAccessRequest,
@@ -43,6 +43,7 @@ function App() {
   const [campusProfile, setCampusProfile] = useState<CampusProfile | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
+  const [notices, setNotices] = useState<Notice[]>([])
 
   function showToast(text: string) {
     setToastMessage(text)
@@ -59,6 +60,9 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  // Supabase reads the stored session asynchronously; rendering before it
+  // resolves flashes the sign-in screen for anyone already signed in.
+  const [isBooting, setIsBooting] = useState(true)
   // A returning account claimed by code has no password yet, and a row created
   // before the profile columns existed needs filling in.
   const [isClaiming, setIsClaiming] = useState(false)
@@ -84,7 +88,12 @@ function App() {
       return
     }
 
-    setCampusProfile(await getMyProfile())
+    const profile = await getMyProfile()
+    setCampusProfile(profile)
+
+    if (profile) {
+      loadNotices(profile.id)
+    }
 
     if (isProfileIncomplete(await getAccessRequest())) {
       setStep('finish')
@@ -95,8 +104,63 @@ function App() {
     getCurrentUser()
       .then(enter)
       .catch((error: Error) => setErrorMessage(error.message))
+      .finally(() => setIsBooting(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  /**
+   * Derived from existing rows rather than a notifications table: who has
+   * taken a seat on your trips, and which of your own trips are imminent.
+   */
+  async function loadNotices(profileId: string) {
+    try {
+      const history = await fetchHistory(profileId)
+      const now = Date.now()
+      const soon = now + 48 * 60 * 60 * 1000
+      const items: Notice[] = []
+
+      for (const ride of history.offered) {
+        const departs = new Date(ride.departure_at).getTime()
+
+        for (const passenger of ride.ride_reservations ?? []) {
+          if (departs >= now) {
+            items.push({
+              id: `${ride.id}:${passenger.rider_profile_id ?? passenger.rider_name}`,
+              text: `${passenger.rider_name} took a seat to ${ride.destination}`,
+              when: new Date(ride.departure_at).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+              }),
+            })
+          }
+        }
+
+        if (departs >= now && departs <= soon) {
+          items.push({
+            id: `soon:${ride.id}`,
+            text: `You are driving to ${ride.destination} soon`,
+            when: 'within 48h',
+          })
+        }
+      }
+
+      for (const ride of history.reserved) {
+        const departs = new Date(ride.departure_at).getTime()
+
+        if (departs >= now && departs <= soon) {
+          items.push({
+            id: `ride:${ride.id}`,
+            text: `Your ride to ${ride.destination} is coming up`,
+            when: 'within 48h',
+          })
+        }
+      }
+
+      setNotices(items.slice(0, 8))
+    } catch {
+      setNotices([])
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -306,12 +370,21 @@ function App() {
       await signOut()
       setCurrentUser(null)
       setCampusProfile(null)
+      setNotices([])
       setCode('')
       setStep('credentials')
       setMode('signin')
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Could not sign out.')
     }
+  }
+
+  if (isBooting) {
+    return (
+      <main className="auth-shell">
+        <span className="spinner" aria-label="Loading" />
+      </main>
+    )
   }
 
   if (currentUser && step === 'finish') {
@@ -412,7 +485,7 @@ function App() {
                 ? { label: '+ Offer a ride', onClick: () => setModalOpen(true) }
                 : undefined
           }
-          onSignOut={handleSignOut}
+          notices={notices}
         />
 
         {view === 'requests' ? (
@@ -433,7 +506,7 @@ function App() {
             onGoToRequests={() => setView('requests')}
           />
         ) : (
-          <HistoryPage profile={campusProfile} onToast={showToast} />
+          <HistoryPage profile={campusProfile} onToast={showToast} onSignOut={handleSignOut} />
         )}
 
         <SiteFooter />

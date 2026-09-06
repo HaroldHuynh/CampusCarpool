@@ -27,6 +27,7 @@ export type OfferedRide = {
 export type RideRequest = {
   id: number
   rider_name: string
+  requester?: Driver | null
   contact_info: string
   origin: string
   destination: string
@@ -156,11 +157,37 @@ export async function reserveSeat(rideId: string) {
   return Boolean(data)
 }
 
+/** Releases a seat and puts it back on the ride, in one statement. */
+export async function cancelSeat(rideId: string) {
+  const { data, error } = await getSupabaseClient().rpc('cancel_ride_seat', {
+    target_ride_id: rideId,
+  })
+
+  if (error) {
+    throw error
+  }
+
+  return Boolean(data)
+}
+
+/** Driver cancels their own trip; reservations cascade away. */
+export async function cancelRide(rideId: string) {
+  const { data, error } = await getSupabaseClient().rpc('cancel_ride', {
+    target_ride_id: rideId,
+  })
+
+  if (error) {
+    throw error
+  }
+
+  return Boolean(data)
+}
+
 export async function fetchRideRequests(): Promise<RideRequest[]> {
   const { data, error } = await getSupabaseClient()
     .from('ride_requests')
     .select(
-      'id, rider_name, contact_info, origin, destination, departure_at, price_offer, requester_profile_id, is_closed',
+      'id, rider_name, contact_info, origin, destination, departure_at, price_offer, requester_profile_id, is_closed, requester:campus_profiles!requester_profile_id(display_name, rating_average, rating_count)',
     )
     .eq('is_closed', false)
     .gte('departure_at', new Date().toISOString())
@@ -170,7 +197,10 @@ export async function fetchRideRequests(): Promise<RideRequest[]> {
     throw error
   }
 
-  return (data ?? []) as RideRequest[]
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    ...(row as unknown as RideRequest),
+    requester: one(row.requester as Driver | Driver[] | null),
+  }))
 }
 
 export async function postRideRequest(input: {
@@ -231,7 +261,7 @@ export type HistoryRide = {
 export async function fetchHistory(profileId: string) {
   const supabase = getSupabaseClient()
 
-  const [offered, reservations, given] = await Promise.all([
+  const [offered, reservations, given, requests] = await Promise.all([
     supabase
       .from('rides')
       .select('*, ride_reservations(rider_name, rider_profile_id)')
@@ -244,6 +274,14 @@ export async function fetchHistory(profileId: string) {
       )
       .eq('rider_profile_id', profileId),
     supabase.from('user_ratings').select('ride_id, rated_profile_id').eq('rater_profile_id', profileId),
+    supabase
+      .from('ride_requests')
+      .select(
+        'id, rider_name, contact_info, origin, destination, departure_at, price_offer, requester_profile_id, is_closed',
+      )
+      .eq('requester_profile_id', profileId)
+      .eq('is_closed', false)
+      .order('departure_at'),
   ])
 
   if (offered.error) {
@@ -264,7 +302,12 @@ export async function fetchHistory(profileId: string) {
     ),
   )
 
-  return { offered: (offered.data ?? []) as HistoryRide[], reserved, rated }
+  return {
+    offered: (offered.data ?? []) as HistoryRide[],
+    reserved,
+    rated,
+    requests: (requests.data ?? []) as RideRequest[],
+  }
 }
 
 export async function rateUser(rideId: string, raterId: string, ratedId: string, stars: number) {

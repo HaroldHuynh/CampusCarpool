@@ -1,0 +1,255 @@
+/* campus.css hides .site-header nav below 800px. That was fine for a
+   multi-page site (the browser's own navigation still worked), but this is a
+   single-page app — hiding the nav strands you on whatever view you're on.
+   Below 800px the links become a compact row under the header instead. */
+
+@media (max-width: 800px) {
+  .site-header {
+    height: auto;
+    padding: 10px 18px 0;
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .header-actions {
+    order: 2;
+  }
+
+  .site-header nav {
+    display: flex;
+    order: 3;
+    width: 100%;
+    gap: 20px;
+    font-size: 13px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .site-header nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .site-header nav a {
+    padding: 8px 0 10px;
+    white-space: nowrap;
+  }
+}
+
+/* His header is a 3-child flex row with space-between (brand | nav | button).
+   Adding a sign-out control made it four, which redistributed everything when
+   the window was stretched. Grouping the right-hand controls restores three. */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Sign-out sits quietly beside the primary action. */
+.site-header .text-button {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 6px 0;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+.site-header .text-button:hover {
+  color: var(--green);
+}
+
+/* The browser's default focus ring is a heavy orange box over these links.
+   Keep focus clearly visible, but in the palette. */
+.site-header nav a:focus-visible,
+.site-header .brand:focus-visible,
+.site-header button:focus-visible,
+.reserve:focus-visible,
+.primary:focus-visible,
+.secondary:focus-visible,
+.header-button:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Clicking a nav link should not leave it ringed afterwards. */
+.site-header nav a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ---------- banners ---------- */
+/* The originals were sized for a marketing landing page; in an app you scroll
+   past them every visit, so they take far less vertical space here. */
+
+.hero {
+  min-height: 300px;
+  margin-bottom: 48px;
+}
+
+.page-hero {
+  padding: 40px 44px;
+  margin-bottom: 40px;
+}
+
+.page-hero h1 {
+  font-size: 34px;
+}
+
+@media (max-width: 800px) {
+  .hero {
+    min-height: 0;
+    margin-bottom: 32px;
+  }
+
+  .page-hero {
+    padding: 28px 22px;
+    margin-bottom: 28px;
+  }
+}
+
+/* ---------- header: notifications ---------- */
+
+/* Reserved even when a view has no action button, so moving between tabs
+   cannot resize the header and shove the nav sideways. */
+.header-action-slot {
+  display: inline-flex;
+  min-width: 150px;
+  justify-content: flex-end;
+}
+
+.bell-wrap {
+  position: relative;
+}
+
+.bell {
+  position: relative;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bell:hover {
+  border-color: var(--green);
+}
+
+.bell-dot {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--orange, #ff705b);
+  color: #ffffff;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.bell-menu {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  z-index: 40;
+  width: min(300px, 78vw);
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 14px 36px rgba(33, 62, 51, 0.14);
+}
+
+.bell-item {
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.bell-item:hover {
+  background: var(--mint);
+}
+
+.bell-item small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.bell-empty {
+  margin: 0;
+  padding: 14px 10px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ---------- profile additions ---------- */
+
+.profile-head {
+  position: relative;
+}
+
+.profile-signout {
+  margin-left: auto;
+  align-self: flex-start;
+}
+
+.cancel-link {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--orange, #ff705b);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cancel-link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.cancel-link:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.trip-riders {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ---------- star picker ---------- */
+/* Every star rendered filled, so the control always looked like 5 stars.
+   Now they are outlined until hovered, and fill up to the cursor. */
+
+.star-picker button {
+  color: #d6ded8;
+  transition: color 0.12s ease, transform 0.12s ease;
+}
+
+.star-picker button.is-lit {
+  color: #f0b429;
+}
+
+.star-picker button:disabled {
+  cursor: default;
+}

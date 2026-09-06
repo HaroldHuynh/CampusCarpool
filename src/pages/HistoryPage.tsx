@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import ContactFields from '../components/ContactFields'
 import { getAccessRequest, saveProfile, type ContactMethod } from '../auth/auth'
-import { fetchHistory, rateUser, type CampusProfile, type HistoryRide } from '../data/api'
+import {
+  cancelRide,
+  cancelSeat,
+  closeRideRequest,
+  fetchHistory,
+  rateUser,
+  type CampusProfile,
+  type HistoryRide,
+  type RideRequest,
+} from '../data/api'
 
 function initials(name: string) {
   return name
@@ -58,12 +67,39 @@ function StarPicker({
   rated: boolean
   onRate: (stars: number) => void
 }) {
+  const [hover, setHover] = useState(0)
+  const [saving, setSaving] = useState(false)
+
+  if (rated) {
+    return (
+      <div className="rate-person">
+        <span>Rated</span>
+      </div>
+    )
+  }
+
   return (
     <div className="rate-person">
-      <span>{rated ? 'Rated' : `Rate ${label}`}</span>
-      <div className="star-picker">
+      <span>Rate {label}</span>
+      <div className="star-picker" onMouseLeave={() => setHover(0)}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} type="button" disabled={rated} title={`${n} star${n === 1 ? '' : 's'}`} onClick={() => onRate(n)}>
+          <button
+            key={n}
+            type="button"
+            // Only the stars up to the one under the cursor light up; every
+            // star was previously shown filled, so it always read as 5.
+            className={n <= hover ? 'is-lit' : undefined}
+            disabled={saving}
+            aria-label={`${n} star${n === 1 ? '' : 's'}`}
+            onMouseEnter={() => setHover(n)}
+            onFocus={() => setHover(n)}
+            onClick={() => {
+              // One rating per person per ride is enforced by a unique
+              // constraint; block the second click before it errors.
+              setSaving(true)
+              onRate(n)
+            }}
+          >
             ★
           </button>
         ))}
@@ -72,10 +108,20 @@ function StarPicker({
   )
 }
 
-function HistoryPage({ profile, onToast }: { profile: CampusProfile | null; onToast: (t: string) => void }) {
+function HistoryPage({
+  profile,
+  onToast,
+  onSignOut,
+}: {
+  profile: CampusProfile | null
+  onToast: (t: string) => void
+  onSignOut: () => void
+}) {
   const [offered, setOffered] = useState<HistoryRide[]>([])
   const [reserved, setReserved] = useState<HistoryRide[]>([])
   const [rated, setRated] = useState<Set<string>>(new Set())
+  const [requests, setRequests] = useState<RideRequest[]>([])
+  const [busyId, setBusyId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
 
   const [firstName, setFirstName] = useState('')
@@ -94,6 +140,7 @@ function HistoryPage({ profile, onToast }: { profile: CampusProfile | null; onTo
       setOffered(result.offered)
       setReserved(result.reserved)
       setRated(result.rated)
+      setRequests(result.requests)
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Could not load your history.')
     }
@@ -130,6 +177,21 @@ function HistoryPage({ profile, onToast }: { profile: CampusProfile | null; onTo
       setErrorMessage(error instanceof Error ? error.message : 'Could not save.')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function runCancel(key: string, action: () => Promise<unknown>, done: string) {
+    setErrorMessage('')
+    setBusyId(key)
+
+    try {
+      await action()
+      onToast(done)
+      await load()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Could not cancel that.')
+    } finally {
+      setBusyId(null)
     }
   }
 
@@ -170,6 +232,9 @@ function HistoryPage({ profile, onToast }: { profile: CampusProfile | null; onTo
             </span>
           </p>
         </div>
+        <button className="text-button profile-signout" type="button" onClick={onSignOut}>
+          Sign out
+        </button>
       </section>
 
       <section className="profile-stats">
@@ -229,7 +294,20 @@ function HistoryPage({ profile, onToast }: { profile: CampusProfile | null; onTo
         </div>
         <div className="trip-list">
           {upcomingReserved.length > 0 ? (
-            upcomingReserved.map((ride) => <TripCard key={ride.id} ride={ride} role="Passenger" />)
+            upcomingReserved.map((ride) => (
+              <TripCard key={ride.id} ride={ride} role="Passenger">
+                <button
+                  type="button"
+                  className="cancel-link"
+                  disabled={busyId === `seat:${ride.id}`}
+                  onClick={() =>
+                    runCancel(`seat:${ride.id}`, () => cancelSeat(ride.id), 'Seat released.')
+                  }
+                >
+                  {busyId === `seat:${ride.id}` ? 'Cancelling…' : 'Cancel my seat'}
+                </button>
+              </TripCard>
+            ))
           ) : (
             <div className="empty-trips">
               <p>You have no upcoming reservations.</p>
@@ -247,10 +325,74 @@ function HistoryPage({ profile, onToast }: { profile: CampusProfile | null; onTo
         </div>
         <div className="trip-list">
           {upcomingOffered.length > 0 ? (
-            upcomingOffered.map((ride) => <TripCard key={ride.id} ride={ride} role="Driver" />)
+            upcomingOffered.map((ride) => (
+              <TripCard key={ride.id} ride={ride} role="Driver">
+                {(ride.ride_reservations ?? []).length > 0 ? (
+                  <p className="trip-riders">
+                    Riders: {(ride.ride_reservations ?? []).map((r) => r.rider_name).join(', ')}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  className="cancel-link"
+                  disabled={busyId === `ride:${ride.id}`}
+                  onClick={() =>
+                    runCancel(`ride:${ride.id}`, () => cancelRide(ride.id), 'Ride cancelled.')
+                  }
+                >
+                  {busyId === `ride:${ride.id}` ? 'Cancelling…' : 'Cancel this ride'}
+                </button>
+              </TripCard>
+            ))
           ) : (
             <div className="empty-trips">
               <p>You aren’t offering any upcoming rides.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="profile-section">
+        <div className="profile-title">
+          <div>
+            <p className="eyebrow">RIDER</p>
+            <h2>Your open requests</h2>
+          </div>
+        </div>
+        <div className="trip-list">
+          {requests.length > 0 ? (
+            requests.map((request) => (
+              <article className="profile-trip" key={request.id}>
+                <div>
+                  <span className="role-tag passenger">Request</span>
+                  <h3>
+                    {request.origin} <span>→</span> {request.destination}
+                  </h3>
+                  <p>{when(request.departure_at)}</p>
+                  <button
+                    type="button"
+                    className="cancel-link"
+                    disabled={busyId === `req:${request.id}`}
+                    onClick={() =>
+                      runCancel(
+                        `req:${request.id}`,
+                        () => closeRideRequest(request.id, profile?.id ?? ''),
+                        'Request closed.',
+                      )
+                    }
+                  >
+                    {busyId === `req:${request.id}` ? 'Closing…' : 'Close this request'}
+                  </button>
+                </div>
+                <div className="trip-meta">
+                  <strong>${Number(request.price_offer).toFixed(0)}</strong>
+                  <span>offered</span>
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="empty-trips">
+              <p>You have no open ride requests.</p>
             </div>
           )}
         </div>
