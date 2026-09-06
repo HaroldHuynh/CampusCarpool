@@ -231,7 +231,7 @@ function RequestsPage({
                 const isMine = profile !== null && row.requester_profile_id === profile.id
 
                 return (
-                  <tr key={row.id}>
+                  <tr id={`request-${row.id}`} key={row.id}>
                     <td>
                       <div className="rider">
                         <span className={`avatar color-${index % 4}`}>{initials(row.rider_name)}</span>

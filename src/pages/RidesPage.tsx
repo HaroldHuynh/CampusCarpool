@@ -218,7 +218,7 @@ function RidesPage({
                 const isMine = profile !== null && ride.driver_profile_id === profile.id
 
                 return (
-                  <tr key={ride.id}>
+                  <tr id={`ride-${ride.id}`} key={ride.id}>
                     <td>
                       <span className="destination">
                         {ride.origin} <span className="route-arrow">→</span> {ride.destination}

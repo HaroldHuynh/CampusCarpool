@@ -203,6 +203,7 @@ function App() {
               id: `ask:${seat.id}`,
               text: `${seat.rider_name} asked for a seat on ${route}`,
               goTo: 'profile',
+              targetId: `ride-${ride.id}`,
             })
           }
 
@@ -211,6 +212,7 @@ function App() {
               id: `joined:${seat.id}`,
               text: `${seat.rider_name} accepted your offer for ${route}`,
               goTo: 'profile',
+              targetId: `ride-${ride.id}`,
             })
           }
         }
@@ -226,6 +228,7 @@ function App() {
             id: `ok:${ride.id}`,
             text: `Your seat on ${route} was confirmed`,
             goTo: 'profile',
+            targetId: `ride-${ride.id}`,
           })
         }
 
@@ -234,6 +237,7 @@ function App() {
             id: `no:${ride.id}`,
             text: `Your request for ${route} was declined`,
             goTo: 'rides',
+            targetId: `ride-${ride.id}`,
           })
         }
 
@@ -249,6 +253,7 @@ function App() {
           id: `matched:${request.id}:${request.matched_ride_id}`,
           text: `A driver offered a ride from ${request.origin} to ${request.destination}`,
           goTo: 'profile',
+          targetId: `request-${request.id}`,
         })
       }
 

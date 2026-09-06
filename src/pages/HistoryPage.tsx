@@ -46,7 +46,7 @@ function TripCard({
   children?: React.ReactNode
 }) {
   return (
-    <article className="profile-trip">
+    <article className="profile-trip" id={`ride-${ride.id}`}>
       <div>
         <span className={`role-tag ${role.toLowerCase()}`}>{role}</span>
         <h3>
@@ -455,7 +455,7 @@ function HistoryPage({
         <div className="trip-list">
           {requests.length > 0 ? (
             requests.map((request) => (
-              <article className="profile-trip" key={request.id}>
+              <article className="profile-trip" id={`request-${request.id}`} key={request.id}>
                 <div>
                   <span className="role-tag passenger">Request</span>
                   <h3>
