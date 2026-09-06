@@ -5,7 +5,6 @@ import {
   fetchOfferedRides,
   offerRide,
   requestSeat,
-  setRideStatus,
   cancelSeat,
   type CampusProfile,
   type OfferedRide,
@@ -183,9 +182,6 @@ function RidesPage({
                     <td>
                       <span className="destination">
                         {ride.origin} <span className="route-arrow">→</span> {ride.destination}
-                        {ride.status === 'in_progress' ? (
-                          <span className="ride-state">under way</span>
-                        ) : null}
                       </span>
                       <span
                         className="driver-rating"
@@ -232,32 +228,11 @@ function RidesPage({
                     </td>
                     <td>
                       {isMine ? (
-                        <div className="row-actions">
-                          {ride.status === 'scheduled' ? (
-                            <button
-                              className="reserve"
-                              type="button"
-                              disabled={busyId === ride.id}
-                              onClick={() => act(ride.id, () => setRideStatus(ride.id, 'in_progress'), 'Ride started.')}
-                            >
-                              Start ride
-                            </button>
-                          ) : (
-                            <button
-                              className="reserve"
-                              type="button"
-                              disabled={busyId === ride.id}
-                              onClick={() => act(ride.id, () => setRideStatus(ride.id, 'completed'), 'Ride finished.')}
-                            >
-                              Finish ride
-                            </button>
-                          )}
-                          {ride.requests.some((r) => r.status === 'pending') ? (
-                            <span className="pending-note">
-                              {ride.requests.filter((r) => r.status === 'pending').length} awaiting you
-                            </span>
-                          ) : null}
-                        </div>
+                        <span className="own-ride-note">
+                          {ride.requests.some((r) => r.status === 'pending')
+                            ? `${ride.requests.filter((r) => r.status === 'pending').length} awaiting you`
+                            : 'Your ride'}
+                        </span>
                       ) : ride.mySeat ? (
                         <button
                           className="reserve is-secondary"
@@ -271,16 +246,10 @@ function RidesPage({
                         <button
                           className="reserve"
                           type="button"
-                          disabled={full || busyId === ride.id || ride.status !== 'scheduled'}
+                          disabled={full || busyId === ride.id}
                           onClick={() => act(ride.id, () => requestSeat(ride.id))}
                         >
-                          {ride.status !== 'scheduled'
-                            ? 'Under way'
-                            : full
-                              ? 'Full'
-                              : busyId === ride.id
-                                ? 'Asking…'
-                                : 'Request seat'}
+                          {full ? 'Full' : busyId === ride.id ? 'Asking…' : 'Request seat'}
                         </button>
                       )}
                     </td>
@@ -375,7 +344,6 @@ function RidesPage({
                 required
                 onChange={(event) => setSeats(event.target.value)}
               />
-              <small>How many riders can join?</small>
             </label>
             <label>
               Price per seat
@@ -391,7 +359,7 @@ function RidesPage({
                   onChange={(event) => setPrice(event.target.value)}
                 />
               </div>
-              <small>Enter 0 if the ride is free.</small>
+              <small>0 if free.</small>
             </label>
           </div>
 

@@ -7,6 +7,7 @@ import RidesPage from './pages/RidesPage'
 import HistoryPage from './pages/HistoryPage'
 import { fetchHistory, getMyProfile, type CampusProfile } from './data/api'
 import ContactFields from './components/ContactFields'
+import PasswordField from './components/PasswordField'
 import {
   getAccessRequest,
   getCurrentUser,
@@ -457,13 +458,11 @@ function App() {
             {needsPassword ? (
               <>
                 <label htmlFor="finishPassword">Create a password</label>
-                <input
+                <PasswordField
                   id="finishPassword"
-                  type="password"
                   value={password}
-                  autoComplete="new-password"
-                  placeholder="At least 6 characters"
-                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                  onChange={setPassword}
                 />
               </>
             ) : null}
@@ -558,16 +557,13 @@ function App() {
               />
             </label>
 
-            <label>
-              New password
-              <input
-                type="password"
-                value={password}
-                autoComplete="new-password"
-                placeholder="At least 6 characters"
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </label>
+            <label htmlFor="newPassword">New password</label>
+            <PasswordField
+              id="newPassword"
+              value={password}
+              autoComplete="new-password"
+              onChange={setPassword}
+            />
 
             <button
               className="submit"
@@ -738,14 +734,11 @@ function App() {
           />
 
           <label htmlFor="password">Password</label>
-          <input
+          <PasswordField
             id="password"
-            name="password"
-            type="password"
             value={password}
             autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-            placeholder="At least 6 characters"
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={setPassword}
           />
 
           <button

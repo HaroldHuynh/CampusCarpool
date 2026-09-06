@@ -5,7 +5,6 @@ import {
   cancelRide,
   cancelSeat,
   respondToSeatRequest,
-  setRideStatus,
   closeRideRequest,
   fetchHistory,
   rateUser,
@@ -229,10 +228,8 @@ function HistoryPage({
       <section className="profile-head">
         <div className="profile-avatar">{initials(name) || '?'}</div>
         <div>
-          <p className="eyebrow">MY CAMPUSCARPOOL</p>
           <h1>{name}</h1>
           <p>
-            Your upcoming plans and CampusCarpool history.{' '}
             <span className="profile-rating">
               {profile && profile.rating_count
                 ? `★ ${Number(profile.rating_average).toFixed(1)} (${profile.rating_count})`
@@ -263,7 +260,6 @@ function HistoryPage({
       <section className="profile-section">
         <div className="profile-title">
           <div>
-            <p className="eyebrow">YOUR DETAILS</p>
             <h2>Name and contact</h2>
           </div>
         </div>
@@ -304,9 +300,6 @@ function HistoryPage({
           {upcomingReserved.length > 0 ? (
             upcomingReserved.map((ride) => (
               <TripCard key={ride.id} ride={ride} role="Passenger">
-                <p className="trip-riders">
-                  {ride.status === 'in_progress' ? 'Under way' : 'Waiting to depart'}
-                </p>
                 <button
                   type="button"
                   className="cancel-link"
@@ -388,38 +381,6 @@ function HistoryPage({
                       ))}
 
                       <div className="trip-actions">
-                        {ride.status === 'scheduled' ? (
-                          <button
-                            type="button"
-                            className="mini accept"
-                            disabled={busyId === `go:${ride.id}`}
-                            onClick={() =>
-                              runCancel(
-                                `go:${ride.id}`,
-                                () => setRideStatus(ride.id, 'in_progress'),
-                                'Ride started.',
-                              )
-                            }
-                          >
-                            Start ride
-                          </button>
-                        ) : ride.status === 'in_progress' ? (
-                          <button
-                            type="button"
-                            className="mini accept"
-                            disabled={busyId === `go:${ride.id}`}
-                            onClick={() =>
-                              runCancel(
-                                `go:${ride.id}`,
-                                () => setRideStatus(ride.id, 'completed'),
-                                'Ride finished.',
-                              )
-                            }
-                          >
-                            Finish ride
-                          </button>
-                        ) : null}
-
                         <button
                           type="button"
                           className="cancel-link"

@@ -40,7 +40,6 @@ function RequestsPage({
   const [formError, setFormError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
-  const [contact, setContact] = useState('')
   const [origin, setOrigin] = useState('')
   const [destination, setDestination] = useState('')
   const [date, setDate] = useState('')
@@ -84,7 +83,6 @@ function RequestsPage({
 
     try {
       await postRideRequest({
-        contactInfo: contact,
         origin,
         destination,
         departureAt: `${date}T${time}`,
@@ -249,17 +247,6 @@ function RequestsPage({
       >
         <form id="request-form" onSubmit={handleSubmit}>
           <label>
-            Contact info
-            <input
-              value={contact}
-              maxLength={100}
-              placeholder="Email, phone, or @instagram"
-              required
-              onChange={(event) => setContact(event.target.value)}
-            />
-            <small>Posted as {profile?.display_name ?? 'your profile name'}.</small>
-          </label>
-          <label>
             Leaving from
             <input
               value={origin}
@@ -313,7 +300,6 @@ function RequestsPage({
                 onChange={(event) => setPrice(event.target.value)}
               />
             </div>
-            <small>The amount you’re offering toward gas and the ride.</small>
           </label>
 
           <p className={`form-error${formError ? ' show' : ''}`} role="alert">

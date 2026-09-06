@@ -316,19 +316,6 @@
   margin-top: 0;
 }
 
-.ride-state {
-  display: inline-block;
-  margin-left: 8px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--lime, #c6e546);
-  color: var(--ink);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  vertical-align: middle;
-}
 
 /* ---------- board banner ---------- */
 
@@ -482,4 +469,47 @@
 
 .row-actions {
   justify-items: end;
+}
+
+/* ---------- password field ---------- */
+
+.password-field {
+  position: relative;
+  display: block;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.password-toggle:hover {
+  color: var(--ink);
+}
+
+.own-ride-note {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
 }

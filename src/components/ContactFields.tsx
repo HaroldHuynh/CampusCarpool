@@ -63,6 +63,7 @@ function ContactFields({ idPrefix, method, value, onMethodChange, onValueChange 
           type="text"
           value={value}
           autoComplete="off"
+          placeholder="@username"
           onChange={(event) => onValueChange(event.target.value)}
         />
       )}

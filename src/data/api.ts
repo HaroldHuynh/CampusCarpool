@@ -90,7 +90,6 @@ export async function fetchOfferedRides(): Promise<OfferedRide[]> {
     .select(
       'id, origin, destination, departure_at, seats_available, price_per_seat, driver_profile_id, status, started_at, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count), ride_reservations(id, rider_name, rider_profile_id, status)',
     )
-    .in('status', ['scheduled', 'in_progress'])
     .gte('departure_at', new Date().toISOString())
     .order('departure_at', { ascending: true })
 
@@ -186,20 +185,6 @@ export async function respondToSeatRequest(requestId: string, accept: boolean) {
   return Boolean(data)
 }
 
-/** Driver starts, finishes or calls off their own ride. */
-export async function setRideStatus(rideId: string, status: RideStatus) {
-  const { data, error } = await getSupabaseClient().rpc('set_ride_status', {
-    target_ride_id: rideId,
-    next_status: status,
-  })
-
-  if (error) {
-    throw error
-  }
-
-  return Boolean(data)
-}
-
 /** Releases a seat and puts it back on the ride, in one statement. */
 export async function cancelSeat(rideId: string) {
   const { data, error } = await getSupabaseClient().rpc('cancel_ride_seat', {
@@ -247,12 +232,12 @@ export async function fetchRideRequests(): Promise<RideRequest[]> {
 }
 
 export async function postRideRequest(input: {
-  contactInfo: string
   origin: string
   destination: string
   departureAt: string
   priceOffer: number
 }) {
+  const supabase = getSupabaseClient()
   const profile = await getMyProfile()
 
   if (!profile) {
@@ -263,9 +248,15 @@ export async function postRideRequest(input: {
     throw new Error('Choose a future departure time.')
   }
 
-  const { error } = await getSupabaseClient().from('ride_requests').insert({
+  // Contact comes from the profile rather than being retyped each time.
+  const { data: row } = await supabase
+    .from('access_requests')
+    .select('contact_value')
+    .maybeSingle()
+
+  const { error } = await supabase.from('ride_requests').insert({
     rider_name: profile.display_name,
-    contact_info: input.contactInfo.trim(),
+    contact_info: (row?.contact_value as string) ?? '',
     origin: input.origin.trim(),
     destination: input.destination.trim(),
     departure_at: new Date(input.departureAt).toISOString(),
