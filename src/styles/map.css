@@ -2,6 +2,42 @@
 
 /* Toolbar icon ------------------------------------------------------------ */
 
+.heading-with-map {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.heading-with-map h2 {
+  margin: 0;
+}
+
+/* Sits with the heading, not on it: quiet until you reach for it. */
+.map-button.map-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--green-dark);
+  cursor: pointer;
+}
+
+.map-button.map-button:hover {
+  border-color: var(--green);
+  background: var(--mint);
+}
+
+.map-button.map-button:focus-visible {
+  outline: 2px solid var(--green-dark);
+  outline-offset: 2px;
+}
+
 .map-button svg {
   width: 18px;
   height: 18px;

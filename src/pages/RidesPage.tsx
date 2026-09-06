@@ -144,7 +144,10 @@ function RidesPage({
         <div className="section-heading">
           <div>
             <p className="eyebrow">UPCOMING TRIPS</p>
-            <h2>Available rides</h2>
+            <div className="heading-with-map">
+              <h2>Available rides</h2>
+              <MapButton onClick={() => setMapOpen(true)} />
+            </div>
           </div>
           <div className="toolbar">
             <label className="search">
@@ -157,7 +160,6 @@ function RidesPage({
                 onChange={(event) => setSearch(event.target.value)}
               />
             </label>
-            <MapButton onClick={() => setMapOpen(true)} />
             <button className="secondary" type="button" onClick={load} aria-label="Refresh rides">
               ↻
             </button>

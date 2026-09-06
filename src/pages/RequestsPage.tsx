@@ -145,7 +145,10 @@ function RequestsPage({
         <div className="section-heading">
           <div>
             <p className="eyebrow">OPEN REQUESTS</p>
-            <h2 id="requests-title">Who needs a ride</h2>
+            <div className="heading-with-map">
+              <h2 id="requests-title">Who needs a ride</h2>
+              <MapButton onClick={() => setMapOpen(true)} />
+            </div>
           </div>
           <div className="toolbar">
             <label className="search">
@@ -158,7 +161,6 @@ function RequestsPage({
                 onChange={(event) => setSearch(event.target.value)}
               />
             </label>
-            <MapButton onClick={() => setMapOpen(true)} />
             <button className="secondary" type="button" onClick={load} aria-label="Refresh requests">
               ↻
             </button>
