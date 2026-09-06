@@ -32,7 +32,20 @@ export type PhoneEdit = { value: string; caret: number }
  * removes the digit before the caret instead.
  */
 export function applyPhoneEdit(rawValue: string, caret: number, previousValue: string): PhoneEdit {
-  const maxDigits = rawValue.trimStart().startsWith('+') ? 15 : 10
+  const isInternational = rawValue.trimStart().startsWith('+')
+
+  // Autofill hands over the country code ("16692121088"); treat a leading 1 on
+  // an 11-digit domestic number as NANP so it groups instead of being truncated.
+  if (!isInternational) {
+    const allDigits = rawValue.replace(/\D/g, '')
+
+    if (allDigits.length === 11 && allDigits.startsWith('1')) {
+      const value = formatPhoneInput(allDigits.slice(1))
+      return { value, caret: value.length }
+    }
+  }
+
+  const maxDigits = isInternational ? 15 : 10
   const limitedDigits = rawValue.replace(/\D/g, '').slice(0, maxDigits)
   const limitedRaw = rawValue.trimStart().startsWith('+') ? `+${limitedDigits}` : limitedDigits
   const digitsBeforeCaret = Math.min(rawValue.slice(0, caret).replace(/\D/g, '').length, maxDigits)

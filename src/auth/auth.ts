@@ -63,6 +63,12 @@ export function formatPhoneInput(value: string) {
     return `+${digits}`
   }
 
+  // Autofill often hands us the country code ("16692121088"). An 11-digit
+  // number that starts with 1 is NANP, so drop it and group the rest.
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return formatPhoneInput(digits.slice(1))
+  }
+
   // Past 10 digits this is not a NANP number, so group nothing rather than
   // formatting the first 10 and silently dropping the rest.
   if (digits.length > 10) {

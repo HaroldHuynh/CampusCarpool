@@ -22,4 +22,14 @@ describe('formatPhoneInput', () => {
   it('leaves other international numbers ungrouped', () => {
     expect(formatPhoneInput('+448055550134')).toBe('+448055550134')
   })
+
+  it('drops a leading country-code 1 from an autofilled number', () => {
+    expect(formatPhoneInput('16692121088')).toBe('(669) 212-1088')
+  })
+})
+
+describe('applyPhoneEdit with autofilled country code', () => {
+  it('groups "16692121088" instead of truncating it', () => {
+    expect(applyPhoneEdit('16692121088', 11, '').value).toBe('(669) 212-1088')
+  })
 })
