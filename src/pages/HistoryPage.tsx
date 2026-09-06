@@ -19,6 +19,21 @@ import {
   type RideRequest,
 } from '../data/api'
 
+/**
+ * Chrome address autofill stores the name as one string ("Ben Speck"), so the
+ * form takes a single field and splits on the last space: everything before it
+ * is the first (and middle) name, the last token is the surname.
+ */
+function splitFullName(value: string): [string, string] {
+  const parts = value.trim().split(/\s+/).filter(Boolean)
+
+  if (parts.length <= 1) {
+    return [value.trimStart(), '']
+  }
+
+  return [parts.slice(0, -1).join(' '), parts[parts.length - 1]]
+}
+
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -340,23 +355,20 @@ function HistoryPage({
           </div>
         </div>
         <form className="details-form" onSubmit={handleSaveDetails}>
-          <div className="form-row two-col">
-            <label>
-              First name
+          <div className="form-row">
+            <label htmlFor="historyFullName">
+              Full name
               <input
-                name="given-name"
-                autoComplete="given-name"
-                value={firstName}
-                onChange={(event) => setFirstName(event.target.value)}
-              />
-            </label>
-            <label>
-              Last name
-              <input
-                name="family-name"
-                autoComplete="family-name"
-                value={lastName}
-                onChange={(event) => setLastName(event.target.value)}
+                id="historyFullName"
+                name="name"
+                type="text"
+                autoComplete="name"
+                value={[firstName, lastName].filter(Boolean).join(' ')}
+                onChange={(event) => {
+                  const [first, last] = splitFullName(event.target.value)
+                  setFirstName(first)
+                  setLastName(last)
+                }}
               />
             </label>
           </div>
@@ -368,7 +380,8 @@ function HistoryPage({
             onValueChange={setContactValue}
           />
           <div className="form-actions">
-            <button className="primary" type="submit" disabled={isSaving || !firstName || !lastName}>
+            <button className="primary" type="submit" disabled={isSaving || !firstName || !lastName}
+              title={!firstName || !lastName ? 'Enter your first and last name' : undefined}>
               {isSaving ? 'Saving…' : 'Save details'}
             </button>
           </div>
