@@ -62,6 +62,7 @@ function Preview() {
           onGoToRequests={() => setBoard('requests')}
           onReviewOffer={() => {}}
           onOpenMyRide={() => {}}
+          onMessageProfile={() => {}}
         />
       ) : (
         <RequestsPage
@@ -71,6 +72,7 @@ function Preview() {
           onCloseModal={() => setModalOpen(false)}
           onToast={showToast}
           onGoToRides={() => setBoard('rides')}
+          onMessageProfile={() => {}}
         />
       )}
 

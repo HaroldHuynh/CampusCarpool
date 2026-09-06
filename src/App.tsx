@@ -5,9 +5,12 @@ import { AppHeader, SiteFooter, Toast, type Notice, type View } from './componen
 import RequestsPage from './pages/RequestsPage'
 import RidesPage from './pages/RidesPage'
 import HistoryPage from './pages/HistoryPage'
+import MessagesPage, { type MessageTarget } from './pages/MessagesPage'
 import { fetchHistory, getMyProfile, type CampusProfile } from './data/api'
+import { fetchUnreadMessageCount } from './data/messages'
 import ContactFields from './components/ContactFields'
 import { useLiveData } from './lib/useLiveData'
+import { getSupabaseClient } from './lib/supabase'
 import PasswordField from './components/PasswordField'
 import {
   getAccessRequest,
@@ -44,6 +47,8 @@ function App() {
   const [view, setView] = useState<View>('rides')
   const [focusRequestId, setFocusRequestId] = useState<number | null>(null)
   const [focusRideId, setFocusRideId] = useState<string | null>(null)
+  const [messageTarget, setMessageTarget] = useState<MessageTarget | null>(null)
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0)
   const [campusProfile, setCampusProfile] = useState<CampusProfile | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -68,6 +73,25 @@ function App() {
   function showToast(text: string) {
     setToastMessage(text)
     window.setTimeout(() => setToastMessage(''), 3000)
+  }
+
+  async function loadUnreadMessages() {
+    try {
+      setUnreadMessageCount(await fetchUnreadMessageCount())
+    } catch {
+      setUnreadMessageCount(0)
+    }
+  }
+
+  function openMessages(profileId: string, displayName: string, ratingAverage: number, ratingCount: number) {
+    setMessageTarget({
+      profile_id: profileId,
+      display_name: displayName,
+      rating_average: ratingAverage,
+      rating_count: ratingCount,
+    })
+    setModalOpen(false)
+    setView('messages')
   }
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -148,7 +172,7 @@ function App() {
       // Load the initial notification set before mounting the header. Otherwise
       // an empty bell mounts first and treats every existing notice as a new
       // login-time alert.
-      await loadNotices(profile.id)
+      await Promise.all([loadNotices(profile.id), loadUnreadMessages()])
     }
 
     // Mount the data boards only after the client session and profile lookup
@@ -272,6 +296,21 @@ function App() {
       loadNotices(campusProfile.id)
     }
   }, 'notice-feed')
+
+  useEffect(() => {
+    if (!currentUser || !campusProfile) return
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel(`message-unread-${campusProfile.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, () => {
+        void loadUnreadMessages()
+      })
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [currentUser, campusProfile])
 
   function dismissNotice(id: string) {
     const next = new Set(dismissed)
@@ -549,6 +588,8 @@ function App() {
       setCurrentUser(null)
       setCampusProfile(null)
       setNotices([])
+      setUnreadMessageCount(0)
+      setMessageTarget(null)
       setCode('')
       setStep('credentials')
       setMode('signin')
@@ -653,6 +694,7 @@ function App() {
             setModalOpen(false)
           }}
           notices={notices}
+          unreadMessages={unreadMessageCount}
           onDismissNotice={dismissNotice}
           onClearNotices={clearNotices}
         />
@@ -665,6 +707,7 @@ function App() {
             onCloseModal={() => setModalOpen(false)}
             onToast={showToast}
             onGoToRides={() => setView('rides')}
+            onMessageProfile={openMessages}
           />
         ) : view === 'rides' ? (
           <RidesPage
@@ -682,6 +725,14 @@ function App() {
               setFocusRideId(rideId)
               setView('profile')
             }}
+            onMessageProfile={openMessages}
+          />
+        ) : view === 'messages' && campusProfile ? (
+          <MessagesPage
+            profile={campusProfile}
+            initialRecipient={messageTarget}
+            onInitialRecipientHandled={() => setMessageTarget(null)}
+            onUnreadChange={() => void loadUnreadMessages()}
           />
         ) : (
           <HistoryPage
