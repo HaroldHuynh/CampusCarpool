@@ -247,8 +247,22 @@ function App() {
     setErrorMessage('')
     setCooldown(0)
 
-    if (!isCalPolyEmail(email)) {
+    // Password managers can fill the DOM fields without emitting React's
+    // change events. Read the form at submit time as the source of truth so a
+    // visibly filled sign-in form always works on the first click.
+    const formData = new FormData(event.currentTarget)
+    const submittedEmail = String(formData.get('email') ?? '').trim()
+    const submittedPassword = String(formData.get('password') ?? '')
+    setEmail(submittedEmail)
+    setPassword(submittedPassword)
+
+    if (!isCalPolyEmail(submittedEmail)) {
       setErrorMessage('Use your @calpoly.edu email address.')
+      return
+    }
+
+    if (!submittedPassword) {
+      setErrorMessage('Enter your password.')
       return
     }
 
@@ -260,8 +274,8 @@ function App() {
         setNeedsPassword(false)
 
         const result = await signUpWithPassword({
-          email,
-          password,
+          email: submittedEmail,
+          password: submittedPassword,
           firstName,
           lastName,
           contactMethod,
@@ -273,7 +287,7 @@ function App() {
         // confirmation trigger can create the missing app records.
         if (result.alreadyRegistered) {
           try {
-            await resendSignUpCode(email)
+            await resendSignUpCode(submittedEmail)
             setIsClaiming(false)
             setNeedsPassword(false)
           } catch (resendError) {
@@ -284,7 +298,7 @@ function App() {
               throw resendError
             }
 
-            await sendClaimCode(email)
+            await sendClaimCode(submittedEmail)
             setIsClaiming(true)
             setNeedsPassword(true)
           }
@@ -296,7 +310,7 @@ function App() {
         return
       }
 
-      const user = await signInWithPassword(email, password)
+      const user = await signInWithPassword(submittedEmail, submittedPassword)
       setPassword('')
       await enter(user)
     } catch (error) {
@@ -306,7 +320,7 @@ function App() {
       if (/not confirmed/i.test(message)) {
         setStep('verify')
         try {
-          await resendSignUpCode(email)
+          await resendSignUpCode(submittedEmail)
           setCooldown(60)
         } catch (resendError) {
           const resendMessage =
@@ -848,9 +862,7 @@ function App() {
             type="submit"
             disabled={
               isSubmitting ||
-              !email ||
-              !password ||
-              (mode === 'signup' && (!firstName || !lastName || !contactValue))
+              (mode === 'signup' && (!email || !password || !firstName || !lastName || !contactValue))
             }
           >
             {isSubmitting ? 'Working...' : mode === 'signup' ? 'Create account' : 'Sign in'}
