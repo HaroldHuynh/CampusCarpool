@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import ContactFields from '../components/ContactFields'
+import ProfileCardDialog from '../components/ProfileCardDialog'
 import { useLiveData } from '../lib/useLiveData'
 import { formatPrice } from '../components/Shell'
 import { getAccessRequest, saveProfile, type ContactMethod } from '../auth/auth'
@@ -76,10 +77,12 @@ function StarPicker({
   label,
   rated,
   onRate,
+  onOpenProfile,
 }: {
   label: string
   rated: boolean
   onRate: (stars: number) => void
+  onOpenProfile?: () => void
 }) {
   const [hover, setHover] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -87,6 +90,11 @@ function StarPicker({
   if (rated) {
     return (
       <div className="rate-person">
+        {onOpenProfile ? (
+          <button type="button" className="profile-trigger" onClick={onOpenProfile}>
+            {label}
+          </button>
+        ) : null}
         <span>Rated</span>
       </div>
     )
@@ -94,7 +102,16 @@ function StarPicker({
 
   return (
     <div className="rate-person">
-      <span>Rate {label}</span>
+      <span>
+        Rate{' '}
+        {onOpenProfile ? (
+          <button type="button" className="profile-trigger" onClick={onOpenProfile}>
+            {label}
+          </button>
+        ) : (
+          label
+        )}
+      </span>
       <div className="star-picker" onMouseLeave={() => setHover(0)}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button
@@ -145,6 +162,7 @@ function HistoryPage({
   const [requests, setRequests] = useState<RideRequest[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
+  const [profileCardId, setProfileCardId] = useState<string | null>(null)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -339,6 +357,20 @@ function HistoryPage({
           {upcomingReserved.length > 0 ? (
             upcomingReserved.map((ride) => (
               <TripCard key={ride.id} ride={ride} role="Passenger">
+                {ride.driver_profile_id ? (
+                  <div className="seat-request">
+                    <span>
+                      Driver:{' '}
+                      <button
+                        type="button"
+                        className="profile-trigger seat-profile"
+                        onClick={() => setProfileCardId(ride.driver_profile_id)}
+                      >
+                        {ride.driver?.display_name ?? 'Campus driver'}
+                      </button>
+                    </span>
+                  </div>
+                ) : null}
                 <button
                   type="button"
                   className="cancel-link"
@@ -382,7 +414,14 @@ function HistoryPage({
                     <>
                       {going.map((seat) => (
                         <div className="seat-request" key={seat.id}>
-                          <span>{seat.rider_name}</span>
+                          <button
+                            type="button"
+                            className="profile-trigger seat-profile"
+                            disabled={!seat.rider_profile_id}
+                            onClick={() => setProfileCardId(seat.rider_profile_id)}
+                          >
+                            {seat.rider_name}
+                          </button>
                           <span className="seat-request-actions">
                             <button
                               type="button"
@@ -404,13 +443,34 @@ function HistoryPage({
 
                       {offered.map((seat) => (
                         <div className="seat-request" key={seat.id}>
-                          <span>Waiting for {seat.rider_name} to accept</span>
+                          <span>
+                            Waiting for{' '}
+                            <button
+                              type="button"
+                              className="profile-trigger seat-profile"
+                              disabled={!seat.rider_profile_id}
+                              onClick={() => setProfileCardId(seat.rider_profile_id)}
+                            >
+                              {seat.rider_name}
+                            </button>{' '}
+                            to accept
+                          </span>
                         </div>
                       ))}
 
                       {pending.map((seat) => (
                         <div className="seat-request" key={seat.id}>
-                          <span>{seat.rider_name} wants a seat</span>
+                          <span>
+                            <button
+                              type="button"
+                              className="profile-trigger seat-profile"
+                              disabled={!seat.rider_profile_id}
+                              onClick={() => setProfileCardId(seat.rider_profile_id)}
+                            >
+                              {seat.rider_name}
+                            </button>{' '}
+                            wants a seat
+                          </span>
                           <span className="seat-request-actions">
                             <button
                               type="button"
@@ -571,6 +631,7 @@ function HistoryPage({
                         label={passenger.rider_name}
                         rated={rated.has(`${ride.id}:${passenger.rider_profile_id}`)}
                         onRate={(stars) => handleRate(ride.id, passenger.rider_profile_id!, stars)}
+                        onOpenProfile={() => setProfileCardId(passenger.rider_profile_id)}
                       />
                     ) : null,
                   )}
@@ -583,6 +644,7 @@ function HistoryPage({
                       label={ride.driver?.display_name ?? 'your driver'}
                       rated={rated.has(`${ride.id}:${ride.driver_profile_id}`)}
                       onRate={(stars) => handleRate(ride.id, ride.driver_profile_id!, stars)}
+                      onOpenProfile={() => setProfileCardId(ride.driver_profile_id)}
                     />
                   ) : null}
                 </TripCard>
@@ -597,6 +659,11 @@ function HistoryPage({
       </section>
 
       {errorMessage ? <p className="form-error show">{errorMessage}</p> : null}
+      <ProfileCardDialog
+        profileId={profileCardId}
+        open={profileCardId !== null}
+        onClose={() => setProfileCardId(null)}
+      />
     </main>
   )
 }
