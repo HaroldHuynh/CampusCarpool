@@ -348,7 +348,10 @@ function HistoryPage({
               <TripCard key={ride.id} ride={ride} role="Driver">
                 {(() => {
                   const seats = ride.ride_reservations ?? []
-                  const pending = seats.filter((r) => r.status === 'pending')
+                  // A seat the driver created by answering a request is
+                  // already their yes; only the rider still has to agree.
+                  const pending = seats.filter((r) => r.status === 'pending' && r.initiated_by === 'rider')
+                  const offered = seats.filter((r) => r.status === 'pending' && r.initiated_by === 'driver')
                   const going = seats.filter((r) => r.status === 'accepted')
 
                   return (
@@ -372,6 +375,12 @@ function HistoryPage({
                               Remove
                             </button>
                           </span>
+                        </div>
+                      ))}
+
+                      {offered.map((seat) => (
+                        <div className="seat-request" key={seat.id}>
+                          <span>Waiting for {seat.rider_name} to accept</span>
                         </div>
                       ))}
 

@@ -380,6 +380,9 @@ export type HistoryRide = {
   driver?: Driver | null
   ride_reservations?: SeatRequest[]
   mySeatStatus?: SeatStatus
+  /** Who started my own seat, so the caller can tell an answer I gave from
+   *  one I am being told about. */
+  mySeatInitiatedBy?: 'rider' | 'driver'
 }
 
 export async function fetchHistory(profileId: string) {
@@ -394,7 +397,7 @@ export async function fetchHistory(profileId: string) {
     supabase
       .from('ride_reservations')
       .select(
-        'ride_id, status, rides(*, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count))',
+        'ride_id, status, initiated_by, rides(*, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count))',
       )
       .eq('rider_profile_id', profileId),
     supabase.from('user_ratings').select('ride_id, rated_profile_id').eq('rater_profile_id', profileId),
@@ -422,6 +425,7 @@ export async function fetchHistory(profileId: string) {
     .from('ride_requests')
     .select('id, origin, destination, matched_ride_id')
     .eq('requester_profile_id', profileId)
+    .eq('is_closed', false)
     .not('matched_ride_id', 'is', null)
 
   // Carry my own seat status onto the ride so the caller can tell "waiting on
@@ -430,7 +434,13 @@ export async function fetchHistory(profileId: string) {
     .map((row: Record<string, unknown>) => {
       const ride = one(row.rides as HistoryRide | HistoryRide[] | null)
 
-      return ride ? { ...ride, mySeatStatus: row.status as SeatStatus } : null
+      return ride
+        ? {
+            ...ride,
+            mySeatStatus: row.status as SeatStatus,
+            mySeatInitiatedBy: row.initiated_by as 'rider' | 'driver',
+          }
+        : null
     })
     .filter((row): row is HistoryRide & { mySeatStatus: SeatStatus } => Boolean(row))
 

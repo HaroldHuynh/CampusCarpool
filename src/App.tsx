@@ -192,10 +192,20 @@ function App() {
         const route = `${ride.origin} → ${ride.destination}`
 
         for (const seat of ride.ride_reservations ?? []) {
-          if (seat.status === 'pending') {
+          // Offering on a request is the driver's yes, so nothing there is
+          // theirs to answer. They hear back when the rider agrees.
+          if (seat.status === 'pending' && seat.initiated_by === 'rider') {
             items.push({
               id: `ask:${seat.id}`,
               text: `${seat.rider_name} asked for a seat on ${route}`,
+              goTo: 'profile',
+            })
+          }
+
+          if (seat.status === 'accepted' && seat.initiated_by === 'driver') {
+            items.push({
+              id: `joined:${seat.id}`,
+              text: `${seat.rider_name} accepted your offer for ${route}`,
               goTo: 'profile',
             })
           }
@@ -205,7 +215,9 @@ function App() {
       for (const ride of history.reserved) {
         const route = `${ride.origin} → ${ride.destination}`
 
-        if (ride.mySeatStatus === 'accepted') {
+        // A seat the rider accepted themselves needs no announcement; they
+        // were the one who said yes.
+        if (ride.mySeatStatus === 'accepted' && ride.mySeatInitiatedBy !== 'driver') {
           items.push({
             id: `ok:${ride.id}`,
             text: `Your seat on ${route} was confirmed`,
@@ -227,7 +239,13 @@ function App() {
       }
 
       for (const request of history.matchedOffers) {
-        items.push({ id: `matched:${request.id}:${request.matched_ride_id}`, text: `A driver offered a ride from ${request.origin} to ${request.destination}`, goTo: 'rides' })
+        // The Accept and Decline buttons live on the profile page, so that is
+        // where this has to land.
+        items.push({
+          id: `matched:${request.id}:${request.matched_ride_id}`,
+          text: `A driver offered a ride from ${request.origin} to ${request.destination}`,
+          goTo: 'profile',
+        })
       }
 
       setNotices(items.filter((item) => !dismissed.has(item.id)))
