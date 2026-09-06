@@ -33,6 +33,32 @@ function ContactName({ name, contact }: { name: string; contact?: RideContact })
   return <span className="contact-person" tabIndex={0}>{name}<span className="contact-popover" role="tooltip"><small>{contact.contact_method === 'instagram' ? 'Instagram' : 'Phone'}</small><strong>{contact.contact_value}</strong></span></span>
 }
 
+function RiderProfileLink({
+  name,
+  profileId,
+  onOpen,
+  contact,
+}: {
+  name: string
+  profileId: string | null
+  onOpen: (profileId: string) => void
+  contact?: RideContact
+}) {
+  if (!profileId) return <ContactName name={name} contact={contact} />
+
+  return (
+    <button type="button" className="profile-trigger contact-person" onClick={() => onOpen(profileId)}>
+      {name}
+      {contact?.contact_value ? (
+        <span className="contact-popover" role="tooltip">
+          <small>{contact.contact_method === 'instagram' ? 'Instagram' : 'Phone'}</small>
+          <strong>{contact.contact_value}</strong>
+        </span>
+      ) : null}
+    </button>
+  )
+}
+
 function RidesPage({
   profile,
   modalOpen,
@@ -264,7 +290,15 @@ function RidesPage({
                               key={seat.id}
                               title={seat.status === 'pending' ? 'Awaiting driver' : 'Confirmed'}
                             >
-                              <ContactName name={seat.rider_name} contact={contacts[ride.id]?.find((c) => c.profile_id === seat.rider_profile_id)} />
+                              <RiderProfileLink
+                                name={seat.rider_name}
+                                profileId={seat.rider_profile_id}
+                                contact={contacts[ride.id]?.find((c) => c.profile_id === seat.rider_profile_id)}
+                                onOpen={(profileId) => {
+                                  setProfileId(profileId)
+                                  setProfileOpen(true)
+                                }}
+                              />
                               {seat.status === 'pending' ? ' ·' : ''}
                             </span>
                           ))
