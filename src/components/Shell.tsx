@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-export type View = 'requests' | 'rides' | 'profile'
+export type View = 'requests' | 'rides' | 'messages' | 'profile'
 
 export type Notice = { id: string; text: string; goTo?: View; targetId?: string }
 
@@ -13,12 +13,14 @@ export function AppHeader({
   view,
   onChangeView,
   notices,
+  unreadMessages,
   onDismissNotice,
   onClearNotices,
 }: {
   view: View
   onChangeView: (view: View) => void
   notices: Notice[]
+  unreadMessages: number
   onDismissNotice: (id: string) => void
   onClearNotices: () => void
 }) {
@@ -116,6 +118,17 @@ export function AppHeader({
           }}
         >
           Ride requests
+        </a>
+        <a
+          href="#messages"
+          className={view === 'messages' ? 'active' : undefined}
+          onClick={(event) => {
+            event.preventDefault()
+            onChangeView('messages')
+          }}
+        >
+          Messages
+          {unreadMessages > 0 ? <small className="message-nav-count">{unreadMessages > 99 ? '99+' : unreadMessages}</small> : null}
         </a>
         <a
           href="#profile"

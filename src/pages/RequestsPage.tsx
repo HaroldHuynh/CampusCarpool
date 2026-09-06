@@ -42,6 +42,7 @@ function RequestsPage({
   onOpenModal,
   onToast,
   onGoToRides,
+  onMessageProfile,
 }: {
   profile: CampusProfile | null
   modalOpen: boolean
@@ -49,6 +50,7 @@ function RequestsPage({
   onOpenModal: () => void
   onToast: (text: string) => void
   onGoToRides: () => void
+  onMessageProfile: (profileId: string, displayName: string, ratingAverage: number, ratingCount: number) => void
 }) {
   const [requests, setRequests] = useState<RideRequest[]>([])
   const [search, setSearch] = useState('')
@@ -397,7 +399,14 @@ function RequestsPage({
           await load()
         }}
       />
-      <ProfileCardDialog profileId={profileId} contactOverride={profileContact} open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <ProfileCardDialog
+        profileId={profileId}
+        viewerProfileId={profile?.id}
+        contactOverride={profileContact}
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        onMessage={onMessageProfile}
+      />
     </main>
   )
 }

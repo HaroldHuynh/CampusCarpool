@@ -4,15 +4,19 @@ import { Modal } from './Shell'
 
 export default function ProfileCardDialog({
   profileId,
+  viewerProfileId,
   contactOverride,
   open,
   onClose,
+  onMessage,
 }: {
   profileId: string | null
+  viewerProfileId?: string | null
   /** Open ride requests deliberately publish a contact route for prospective drivers. */
   contactOverride?: string | null
   open: boolean
   onClose: () => void
+  onMessage?: (profileId: string, displayName: string, ratingAverage: number, ratingCount: number) => void
 }) {
   const [profile, setProfile] = useState<ProfileCard | null>(null)
   const [error, setError] = useState('')
@@ -48,6 +52,18 @@ export default function ProfileCardDialog({
             ) : (
               <p className="profile-contact is-private">Contact details appear after a seat request is made.</p>
             )}
+            {profileId && profileId !== viewerProfileId && onMessage ? (
+              <button
+                type="button"
+                className="secondary profile-message-button"
+                onClick={() => {
+                  onMessage(profileId, profile.display_name, profile.rating_average, profile.rating_count)
+                  onClose()
+                }}
+              >
+                Message {profile.display_name.split(/\s+/)[0]} <span>→</span>
+              </button>
+            ) : null}
             {profile.reviews.length ? (
               <section className="profile-reviews" aria-label="Reviews">
                 <h3>Reviews</h3>
