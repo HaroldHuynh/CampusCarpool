@@ -42,6 +42,7 @@ function App() {
   const [mode, setMode] = useState<Mode>('signin')
   const [step, setStep] = useState<Step>('credentials')
   const [view, setView] = useState<View>('rides')
+  const [focusRequestId, setFocusRequestId] = useState<number | null>(null)
   const [campusProfile, setCampusProfile] = useState<CampusProfile | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -672,9 +673,18 @@ function App() {
             onCloseModal={() => setModalOpen(false)}
             onToast={showToast}
             onGoToRequests={() => setView('requests')}
+            onReviewOffer={(requestId) => {
+              setFocusRequestId(requestId)
+              setView('profile')
+            }}
           />
         ) : (
-          <HistoryPage profile={campusProfile} onToast={showToast} onSignOut={handleSignOut} />
+          <HistoryPage
+            profile={campusProfile}
+            onToast={showToast}
+            onSignOut={handleSignOut}
+            focusRequestId={focusRequestId}
+          />
         )}
 
         <SiteFooter />

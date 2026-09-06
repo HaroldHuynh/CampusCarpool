@@ -290,22 +290,20 @@
   flex-shrink: 0;
 }
 
-.offer-actions {
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.offer-summary {
-  flex-basis: 100%;
+.offer-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--muted);
-  font-size: 11px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
 }
 
-.offer-summary .profile-trigger {
-  display: inline;
-  color: var(--ink);
-  font-weight: 700;
-}
+.offer-link strong { color: var(--ink); }
+.offer-link:hover:not(:disabled) { color: var(--green); text-decoration: underline; }
+.offer-link:disabled { cursor: default; }
 
 .mini {
   border: 1px solid var(--line);

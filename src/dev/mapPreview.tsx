@@ -60,6 +60,7 @@ function Preview() {
           onCloseModal={() => setModalOpen(false)}
           onToast={showToast}
           onGoToRequests={() => setBoard('requests')}
+          onReviewOffer={() => {}}
         />
       ) : (
         <RequestsPage
