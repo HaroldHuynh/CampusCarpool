@@ -5,6 +5,7 @@ import { AppHeader, SiteFooter, Toast, type View } from './components/Shell'
 import RequestsPage from './pages/RequestsPage'
 import RidesPage from './pages/RidesPage'
 import HistoryPage from './pages/HistoryPage'
+import MapPage from './pages/MapPage'
 import { getMyProfile, type CampusProfile } from './data/api'
 import ContactFields from './components/ContactFields'
 import {
@@ -383,6 +384,8 @@ function App() {
             onToast={showToast}
             onGoToRequests={() => setView('requests')}
           />
+        ) : view === 'map' ? (
+          <MapPage profile={campusProfile} />
         ) : (
           <HistoryPage profile={campusProfile} onToast={showToast} />
         )}

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type View = 'requests' | 'rides' | 'profile'
+export type View = 'requests' | 'rides' | 'map' | 'profile'
 
 export function AppHeader({
   view,
@@ -46,6 +46,16 @@ export function AppHeader({
           }}
         >
           Rides offered
+        </a>
+        <a
+          href="#map"
+          className={view === 'map' ? 'active' : undefined}
+          onClick={(event) => {
+            event.preventDefault()
+            onChangeView('map')
+          }}
+        >
+          Map
         </a>
         <a
           href="#profile"
