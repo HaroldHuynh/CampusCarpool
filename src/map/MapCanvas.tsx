@@ -28,11 +28,13 @@ export default function MapCanvas({
   markers,
   fit,
   onSelectRoute,
+  onSelectMarker,
 }: {
   routes: MapRoute[]
   markers: MapMarker[]
   fit: LatLng[]
   onSelectRoute?: (id: string) => void
+  onSelectMarker?: (id: string) => void
 }) {
   const holder = useRef<HTMLDivElement | null>(null)
   const map = useRef<L.Map | null>(null)
@@ -105,9 +107,13 @@ export default function MapCanvas({
         fillOpacity: 1,
       })
       if (marker.label) dot.bindTooltip(marker.label)
+      if (onSelectMarker) {
+        dot.on('click', () => onSelectMarker(marker.id))
+        dot.getElement()?.setAttribute('role', 'button')
+      }
       dot.addTo(group)
     }
-  }, [routes, markers, onSelectRoute])
+  }, [routes, markers, onSelectRoute, onSelectMarker])
 
   useEffect(() => {
     const instance = map.current
@@ -117,7 +123,9 @@ export default function MapCanvas({
     if (!bounds.isValid()) return
 
     instance.invalidateSize()
-    instance.fitBounds(bounds, { padding: [48, 48], maxZoom: 13 })
+    // Fitting a single point would otherwise drop straight to street level,
+    // which tells the reader nothing about where the trip sits.
+    instance.fitBounds(bounds, { padding: [48, 48], maxZoom: fit.length === 1 ? 10 : 13 })
   }, [fit])
 
   return (

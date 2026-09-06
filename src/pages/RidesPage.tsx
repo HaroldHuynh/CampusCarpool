@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Modal, formatWhen, ratingLabel } from '../components/Shell'
 import PageBanner from '../components/PageBanner'
+import MapButton from '../components/MapButton'
+import RideMapDialog from '../map/RideMapDialog'
 import {
   fetchOfferedRides,
   offerRide,
   requestSeat,
+  closeRideRequest,
   setRideStatus,
   cancelSeat,
   type CampusProfile,
@@ -37,6 +40,7 @@ function RidesPage({
 }) {
   const [rides, setRides] = useState<OfferedRide[]>([])
   const [search, setSearch] = useState('')
+  const [mapOpen, setMapOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -153,6 +157,7 @@ function RidesPage({
                 onChange={(event) => setSearch(event.target.value)}
               />
             </label>
+            <MapButton onClick={() => setMapOpen(true)} />
             <button className="secondary" type="button" onClick={load} aria-label="Refresh rides">
               ↻
             </button>
@@ -409,6 +414,25 @@ function RidesPage({
           </div>
         </form>
       </Modal>
+
+      <RideMapDialog
+        open={mapOpen}
+        board="rides"
+        profile={profile}
+        onClose={() => setMapOpen(false)}
+        onRequestSeat={async (rideId) => {
+          const outcome = await requestSeat(rideId)
+          onToast(REQUEST_MESSAGE[outcome] ?? 'Request sent.')
+          await load()
+        }}
+        onCloseRequest={async (requestId) => {
+          if (!profile) {
+            throw new Error('Sign in to close a request.')
+          }
+          await closeRideRequest(requestId, profile.id)
+          onToast('Request closed.')
+        }}
+      />
     </main>
   )
 }
