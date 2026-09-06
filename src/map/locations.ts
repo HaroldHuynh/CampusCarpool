@@ -6,7 +6,7 @@ export type ResolvedLocation = { lat: number; lng: number; label: string }
 export type ResolveDeps = {
   search?: typeof searchPlaces
   storage?: Storage | null
-  /** Keeps ambiguous names near a known point — see searchPlaces. */
+  /** Keeps ambiguous names near a known point . see searchPlaces. */
   bias?: { lat: number; lng: number } | null
 }
 
@@ -15,7 +15,7 @@ const MIN_PREFIX_LENGTH = 4
 
 /**
  * Versioned: a cached answer outlives the bug that produced it. Bumping this
- * retires every stored coordinate — "SF" was cached as Sfax, Tunisia before
+ * retires every stored coordinate . "SF" was cached as Sfax, Tunisia before
  * alias matching landed, and no amount of fixing the lookup evicts that.
  */
 const CACHE_PREFIX = 'cc.geo.v2.'
@@ -152,7 +152,7 @@ function findSeed(key: string): Place | undefined {
 
 /**
  * Text to coordinates, cheapest source first: session memory, then persisted
- * cache, then the bundled seed table, then the geocoder. Never throws — an
+ * cache, then the bundled seed table, then the geocoder. Never throws . an
  * unresolvable ride is simply left off the map.
  */
 export async function resolveLocation(

@@ -11,8 +11,8 @@ export type GeocodeResult = {
 const ENDPOINT = 'https://photon.komoot.io/api'
 
 /**
- * Generous enough for any realistic carpool — San Luis Obispo to Davis is about
- * 400 km — while still discarding a same-named place on another continent.
+ * Generous enough for any realistic carpool . San Luis Obispo to Davis is about
+ * 400 km . while still discarding a same-named place on another continent.
  */
 const MAX_BIAS_KM = 1000
 
@@ -32,7 +32,7 @@ function categoryOf(properties: Record<string, unknown>): PlaceCategory {
   return 'other'
 }
 
-/** "Dexter Lawn, San Luis Obispo" — stable enough to re-resolve from text. */
+/** "Dexter Lawn, San Luis Obispo" . stable enough to re-resolve from text. */
 function labelOf(properties: Record<string, unknown>): string {
   const name = String(properties.name ?? '').trim()
   const area = String(properties.city ?? properties.county ?? properties.state ?? '').trim()

@@ -8,6 +8,7 @@ import {
 } from '../data/api'
 import MapCanvas, { type MapMarker, type MapRoute } from './MapCanvas'
 import { resolveLocation, type ResolvedLocation } from './locations'
+import { formatPrice } from '../components/Shell'
 
 export type MapBoard = 'rides' | 'requests'
 
@@ -64,7 +65,7 @@ export default function RideMapDialog({
   onCloseRequest,
 }: {
   open: boolean
-  /** Which board the map opens on — the page you came from. */
+  /** Which board the map opens on . the page you came from. */
   board: MapBoard
   profile: CampusProfile | null
   onClose: () => void
@@ -279,7 +280,7 @@ export default function RideMapDialog({
                 {formatWhen(selected.ride.departure_at)}
               </p>
               <p className="pin-meta">
-                ${Number(selected.ride.price_per_seat).toFixed(0)} per seat ·{' '}
+                ${formatPrice(selected.ride.price_per_seat)} per seat ·{' '}
                 {selected.ride.seats_available}{' '}
                 {selected.ride.seats_available === 1 ? 'seat' : 'seats'} open
               </p>
@@ -287,7 +288,7 @@ export default function RideMapDialog({
               {selected.ride.driver_profile_id === profile?.id ? (
                 <p className="pin-note">This is your ride.</p>
               ) : selected.ride.mySeat ? (
-                <p className="pin-note">You already asked for a seat — {selected.ride.mySeat.status}.</p>
+                <p className="pin-note">You already asked for a seat . {selected.ride.mySeat.status}.</p>
               ) : selected.ride.seats_available < 1 ? (
                 <p className="pin-note">No seats left on this one.</p>
               ) : (
@@ -314,7 +315,7 @@ export default function RideMapDialog({
               <p className="pin-meta">
                 {selected.request.rider_name} · {formatWhen(selected.request.departure_at)}
               </p>
-              <p className="pin-meta">Offering ${Number(selected.request.price_offer).toFixed(0)}</p>
+              <p className="pin-meta">Waiting for a driver to offer a fare</p>
 
               {selected.request.requester_profile_id === profile?.id ? (
                 <button

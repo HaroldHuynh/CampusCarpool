@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import ContactFields from '../components/ContactFields'
+import { formatPrice } from '../components/Shell'
 import { getAccessRequest, saveProfile, type ContactMethod } from '../auth/auth'
 import {
   cancelRide,
@@ -53,7 +54,7 @@ function TripCard({
         {children}
       </div>
       <div className="trip-meta">
-        <strong>${Number(ride.price_per_seat).toFixed(0)}</strong>
+        <strong>${formatPrice(ride.price_per_seat)}</strong>
         <span>{role === 'Driver' ? `${ride.seats_available} seats open` : 'Reserved'}</span>
       </div>
     </article>
@@ -213,7 +214,7 @@ function HistoryPage({
 
   const now = new Date().toISOString()
   // A ride is done when the driver says so, not when its departure time
-  // passes — a completed trip was showing under "currently offering" purely
+  // passes . a completed trip was showing under "currently offering" purely
   // because it was scheduled for tomorrow.
   const isDone = (r: HistoryRide) =>
     r.status === 'completed' || r.status === 'cancelled' || r.departure_at < now
@@ -454,10 +455,7 @@ function HistoryPage({
                     {busyId === `req:${request.id}` ? 'Closing…' : 'Close this request'}
                   </button>
                 </div>
-                <div className="trip-meta">
-                  <strong>${Number(request.price_offer).toFixed(0)}</strong>
-                  <span>offered</span>
-                </div>
+                <div className="trip-meta"><span>Waiting for a driver offer</span></div>
               </article>
             ))
           ) : (

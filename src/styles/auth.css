@@ -1,6 +1,6 @@
 /* Sign-in, code entry, and the profile detail form. Deliberately scoped to
    .auth-shell / .details-form so nothing here can leak into campus.css's
-   header, tables, or modals — the two stylesheets previously collided on
+   header, tables, or modals . the two stylesheets previously collided on
    .site-header, button and input. */
 
 .auth-shell {

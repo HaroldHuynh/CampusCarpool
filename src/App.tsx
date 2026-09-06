@@ -222,6 +222,10 @@ function App() {
         }
       }
 
+      for (const request of history.matchedOffers) {
+        items.push({ id: `matched:${request.id}:${request.matched_ride_id}`, text: `A driver offered a ride from ${request.origin} to ${request.destination}`, goTo: 'rides' })
+      }
+
       setNotices(items.filter((item) => !dismissed.has(item.id)))
     } catch {
       setNotices([])
@@ -302,7 +306,7 @@ function App() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Something went wrong.'
 
-      // An unconfirmed account is not a dead end — send a fresh code instead.
+      // An unconfirmed account is not a dead end . send a fresh code instead.
       if (/not confirmed/i.test(message)) {
         setStep('verify')
         try {
@@ -364,7 +368,7 @@ function App() {
     }
 
     // The code is spent at this point, so a failure here is about the password
-    // itself — say so rather than blaming the code.
+    // itself . say so rather than blaming the code.
     try {
       await setAccountPassword(password)
     } catch (error) {
@@ -399,7 +403,7 @@ function App() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not send a new code.'
 
-      // A cooldown is not an error worth shouting about — show it on the button.
+      // A cooldown is not an error worth shouting about . show it on the button.
       if (/after \d+ seconds|rate limit/i.test(message)) {
         setCooldown(cooldownFromError(message))
       } else {

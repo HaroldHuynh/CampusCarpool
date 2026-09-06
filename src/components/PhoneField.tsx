@@ -32,6 +32,7 @@ function PhoneField({ id, value, onChange }: Props) {
       type="tel"
       inputMode="tel"
       autoComplete="tel"
+      maxLength={16}
       value={value}
       placeholder="(xxx) xxx-xxxx"
       onChange={(event) => {

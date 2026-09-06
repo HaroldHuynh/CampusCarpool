@@ -28,7 +28,7 @@ export default function LocationPicker({
   value: string
   onChange: (label: string) => void
   placeholder?: string
-  /** Pulls results toward a known point — see searchPlaces. */
+  /** Pulls results toward a known point . see searchPlaces. */
   bias?: { lat: number; lng: number } | null
 }) {
   const listId = useId()
@@ -39,7 +39,7 @@ export default function LocationPicker({
   const picked = useRef(false)
 
   useEffect(() => {
-    // A chosen suggestion is already canonical — don't search for it again.
+    // A chosen suggestion is already canonical . don't search for it again.
     if (picked.current) {
       picked.current = false
       setOptions([])

@@ -13,7 +13,7 @@ export type SignUpDetails = {
   contactValue: string
 }
 
-/** One row of public.access_requests — the project's approval record. */
+/** One row of public.access_requests . the project's approval record. */
 export type AccessRequest = {
   user_id: string
   email: string
@@ -80,7 +80,7 @@ export function formatPhoneInput(value: string) {
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
 }
 
-/** Digits only, 10-15 — loose enough for +1 and international forms. */
+/** Digits only, 10-15 . loose enough for +1 and international forms. */
 export function normalizePhone(value: string) {
   const digits = value.replace(/[^\d]/g, '')
 
@@ -144,7 +144,7 @@ export async function signUpWithPassword(details: SignUpDetails) {
 
 /**
  * Confirms a new account with the 6-digit code Supabase emails on signup.
- * Type is 'signup' here — 'email' is for magic-link / passwordless sign-in and
+ * Type is 'signup' here . 'email' is for magic-link / passwordless sign-in and
  * will not confirm a pending registration.
  */
 export async function verifySignUpCode(email: string, token: string) {
@@ -180,8 +180,8 @@ export async function resendSignUpCode(email: string) {
 
 /**
  * Passwordless entry: emails a 6-digit code, creating the account on first use.
- * Supabase picks the template by whether the user exists — "Confirm signup"
- * for new addresses, "Magic Link" for returning ones — so both must carry
+ * Supabase picks the template by whether the user exists . "Confirm signup"
+ * for new addresses, "Magic Link" for returning ones . so both must carry
  * {{ .Token }}.
  */
 export async function sendEmailCode(email: string) {
@@ -219,7 +219,7 @@ export async function verifyEmailCode(email: string, token: string) {
 }
 
 /**
- * Supabase does not report "already registered" on signUp — to avoid leaking
+ * Supabase does not report "already registered" on signUp . to avoid leaking
  * which addresses exist it returns a success shaped like a new user, but with
  * an empty identities array. That is the only signal, so it is what we check.
  */
@@ -302,7 +302,7 @@ export async function saveProfile(details: {
 
 /**
  * Starts a password reset. Supabase emails the recovery template, which
- * carries {{ .Token }} — a 6-digit code rather than a link, so the flow works
+ * carries {{ .Token }} . a 6-digit code rather than a link, so the flow works
  * from any host without redirect URLs having to be allow-listed.
  *
  * Always resolves, even for an address that has no account: reporting which
@@ -356,7 +356,7 @@ export async function signInWithPassword(email: string, password: string) {
 
 /**
  * RLS on access_requests limits the caller to their own row, so no filter is
- * needed here — and other members' rows are deliberately unreadable.
+ * needed here . and other members' rows are deliberately unreadable.
  */
 export async function getAccessRequest(): Promise<AccessRequest | null> {
   const { data, error } = await getSupabaseClient()

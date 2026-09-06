@@ -1,25 +1,32 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Modal, formatWhen, ratingLabel } from '../components/Shell'
+import { Modal, formatPrice, formatWhen, ratingLabel } from '../components/Shell'
 import PageBanner from '../components/PageBanner'
 import MapButton from '../components/MapButton'
 import RideMapDialog from '../map/RideMapDialog'
 import {
   closeRideRequest,
   fetchOfferedRides,
+  fetchRideContacts,
   offerRide,
   requestSeat,
   cancelSeat,
   type CampusProfile,
   type OfferedRide,
+  type RideContact,
 } from '../data/api'
 
 const REQUEST_MESSAGE: Record<string, string> = {
-  requested: 'Request sent — the driver will confirm.',
+  requested: 'Request sent. The driver will confirm.',
   already_requested: 'You already asked for a seat on this ride.',
   full: 'That ride is full.',
   own_ride: 'This is your own ride.',
   not_open: 'That ride is no longer taking requests.',
   missing: 'That ride is gone.',
+}
+
+function ContactName({ name, contact }: { name: string; contact?: RideContact }) {
+  if (!contact?.contact_value) return <>{name}</>
+  return <span className="contact-person" tabIndex={0}>{name}<span className="contact-popover" role="tooltip"><small>{contact.contact_method === 'instagram' ? 'Instagram' : 'Phone'}</small><strong>{contact.contact_value}</strong></span></span>
 }
 
 function RidesPage({
@@ -43,6 +50,7 @@ function RidesPage({
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [contacts, setContacts] = useState<Record<string, RideContact[]>>({})
 
   const [origin, setOrigin] = useState('')
   const [destination, setDestination] = useState('')
@@ -57,7 +65,11 @@ function RidesPage({
     setLoadError('')
 
     try {
-      setRides(await fetchOfferedRides())
+      const rows = await fetchOfferedRides()
+      setRides(rows)
+      const related = rows.filter((ride) => ride.driver_profile_id === profile?.id || (ride.mySeat && ride.mySeat.status !== 'declined'))
+      const entries = await Promise.all(related.map(async (ride) => [ride.id, await fetchRideContacts(ride.id)] as const))
+      setContacts(Object.fromEntries(entries))
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : 'Could not load rides.')
     } finally {
@@ -197,7 +209,7 @@ function RidesPage({
                             : 'No ratings yet'
                         }
                       >
-                        {isMine ? 'You' : (ride.driver?.display_name ?? 'Campus driver')} ·{' '}
+                        <ContactName name={isMine ? 'You' : (ride.driver?.display_name ?? 'Campus driver')} contact={contacts[ride.id]?.find((c) => c.profile_id === ride.driver_profile_id)} /> ·{' '}
                         {ratingLabel(ride.driver)}
                       </span>
                     </td>
@@ -219,7 +231,7 @@ function RidesPage({
                               key={seat.id}
                               title={seat.status === 'pending' ? 'Awaiting driver' : 'Confirmed'}
                             >
-                              {seat.rider_name}
+                              <ContactName name={seat.rider_name} contact={contacts[ride.id]?.find((c) => c.profile_id === seat.rider_profile_id)} />
                               {seat.status === 'pending' ? ' ·' : ''}
                             </span>
                           ))
@@ -229,7 +241,7 @@ function RidesPage({
                       </div>
                     </td>
                     <td>
-                      <span className="price">${Number(ride.price_per_seat).toFixed(0)}</span>
+                      <span className="price">${formatPrice(ride.price_per_seat)}</span>
                       <small className="place-note">per seat</small>
                     </td>
                     <td>
@@ -239,6 +251,8 @@ function RidesPage({
                             ? `${ride.requests.filter((r) => r.status === 'pending').length} awaiting you`
                             : 'Your ride'}
                         </span>
+                      ) : ride.mySeat?.status === 'declined' ? (
+                        <button className="reserve is-declined" type="button" disabled>Declined</button>
                       ) : ride.mySeat ? (
                         <button
                           className="reserve is-secondary"

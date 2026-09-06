@@ -5,6 +5,7 @@ import MapButton from '../components/MapButton'
 import RideMapDialog from '../map/RideMapDialog'
 import {
   closeRideRequest,
+  offerRideForRequest,
   requestSeat,
   fetchRideRequests,
   postRideRequest,
@@ -13,7 +14,7 @@ import {
 } from '../data/api'
 
 const SEAT_MESSAGE: Record<string, string> = {
-  requested: 'Request sent — the driver will confirm.',
+  requested: 'Request sent . the driver will confirm.',
   already_requested: 'You already asked for a seat on this ride.',
   full: 'That ride is full.',
   own_ride: 'This is your own ride.',
@@ -57,7 +58,11 @@ function RequestsPage({
   const [destination, setDestination] = useState('')
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
-  const [price, setPrice] = useState('20')
+  const [offerTarget, setOfferTarget] = useState<RideRequest | null>(null)
+  const [offerPrice, setOfferPrice] = useState('20')
+  const [offerSeats, setOfferSeats] = useState('3')
+  const [offerError, setOfferError] = useState('')
+  const [isOffering, setIsOffering] = useState(false)
 
   async function load() {
     setLoadError('')
@@ -99,7 +104,6 @@ function RequestsPage({
         origin,
         destination,
         departureAt: `${date}T${time}`,
-        priceOffer: Number(price),
       })
       setOrigin('')
       setDestination('')
@@ -113,6 +117,21 @@ function RequestsPage({
     } finally {
       setIsSaving(false)
     }
+  }
+
+  async function handleOfferForRequest(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!offerTarget) return
+    setOfferError('')
+    setIsOffering(true)
+    try {
+      await offerRideForRequest({ requestId: offerTarget.id, seatsAvailable: Number(offerSeats), pricePerSeat: Number(offerPrice) })
+      onToast(`Ride offered to ${offerTarget.rider_name}.`)
+      setOfferTarget(null)
+      await load()
+    } catch (error) {
+      setOfferError(error instanceof Error ? error.message : 'Could not offer that ride.')
+    } finally { setIsOffering(false) }
   }
 
   async function handleClose(request: RideRequest) {
@@ -172,7 +191,6 @@ function RequestsPage({
                 <th>Leaving from</th>
                 <th>Destination</th>
                 <th>Departure</th>
-                <th>Offer</th>
                 <th>
                   <span className="sr-only">Action</span>
                 </th>
@@ -215,14 +233,13 @@ function RequestsPage({
                       <span className="date-note">{when.time}</span>
                     </td>
                     <td>
-                      <span className="price">${Number(row.price_offer).toFixed(0)}</span>
-                    </td>
-                    <td>
                       {isMine ? (
                         <button className="reserve" type="button" onClick={() => handleClose(row)}>
                           Close
                         </button>
-                      ) : null}
+                      ) : (
+                        <button className="reserve" type="button" onClick={() => setOfferTarget(row)}>Offer ride</button>
+                      )}
                     </td>
                   </tr>
                 )
@@ -301,22 +318,6 @@ function RequestsPage({
               />
             </label>
           </div>
-          <label>
-            Price offer
-            <div className="money-input">
-              <span>$</span>
-              <input
-                type="number"
-                min="0"
-                max="1000"
-                step="0.01"
-                value={price}
-                required
-                onChange={(event) => setPrice(event.target.value)}
-              />
-            </div>
-          </label>
-
           <p className={`form-error${formError ? ' show' : ''}`} role="alert">
             {formError}
           </p>
@@ -329,6 +330,15 @@ function RequestsPage({
               {isSaving ? 'Posting…' : 'Post request'} <span>→</span>
             </button>
           </div>
+        </form>
+      </Modal>
+
+      <Modal open={offerTarget !== null} onClose={() => setOfferTarget(null)} eyebrow="RIDE OFFER" title={`Offer ${offerTarget?.rider_name ?? 'this rider'} a ride`}>
+        <form id="offer-request-form" onSubmit={handleOfferForRequest}>
+          <div className="request-summary"><strong>{offerTarget?.origin} → {offerTarget?.destination}</strong>{offerTarget ? <span>{formatWhen(offerTarget.departure_at).date} at {formatWhen(offerTarget.departure_at).time}</span> : null}</div>
+          <div className="form-row two-col"><label>Seats available<input type="number" min="1" max="8" value={offerSeats} required onChange={(e) => setOfferSeats(e.target.value)} /></label><label>Your price per seat<div className="money-input"><span>$</span><input type="number" min="0" max="1000" step="0.01" value={offerPrice} required onChange={(e) => setOfferPrice(e.target.value)} /></div></label></div>
+          <p className={`form-error${offerError ? ' show' : ''}`} role="alert">{offerError}</p>
+          <div className="form-actions"><button className="text-button" type="button" onClick={() => setOfferTarget(null)}>Cancel</button><button className="primary" type="submit" disabled={isOffering}>{isOffering ? 'Creating…' : 'Create ride offer'}</button></div>
         </form>
       </Modal>
 
