@@ -649,16 +649,16 @@
    bell, where the header has room, rather than dropping over the nav. */
 .bell-flash {
   position: absolute;
-  top: 50%;
-  right: calc(100% + 12px);
+  top: calc(100% + 16px);
+  right: -12px;
   z-index: 45;
   /* The bell wrapper is only as wide as the icon, and an absolutely positioned
      box shrinks to the space its container offers, which collapsed this to one
      word per line. Size it to the text instead, then cap it. */
   width: max-content;
   max-width: min(280px, calc(100vw - 120px));
-  margin-top: -0.5em;
-  translate: 0 -50%;
+  margin-top: 0;
+  translate: none;
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -677,20 +677,20 @@
 .bell-flash::after {
   content: '';
   position: absolute;
-  top: calc(50% - 4px);
-  right: -5px;
+  top: -5px;
+  right: 18px;
   width: 9px;
   height: 9px;
   background: var(--ink);
   border-top: 1px solid var(--line);
-  border-right: 1px solid var(--line);
+  border-left: 1px solid var(--line);
   transform: rotate(45deg);
 }
 
 /* Narrow headers have no room beside the bell, so drop underneath it. */
 @media (max-width: 720px) {
   .bell-flash {
-    top: 44px;
+    top: calc(100% + 16px);
     right: 0;
     margin-top: 0;
     translate: none;

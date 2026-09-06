@@ -141,14 +141,18 @@ function App() {
 
     const profile = await getMyProfile()
     setCampusProfile(profile)
+
+    if (profile) {
+      // Load the initial notification set before mounting the header. Otherwise
+      // an empty bell mounts first and treats every existing notice as a new
+      // login-time alert.
+      await loadNotices(profile.id)
+    }
+
     // Mount the data boards only after the client session and profile lookup
     // have settled. Otherwise the first board request can race password sign-in
     // and leave a stale load error even though a refresh succeeds.
     setCurrentUser(user)
-
-    if (profile) {
-      loadNotices(profile.id)
-    }
 
     if (isProfileIncomplete(await getAccessRequest())) {
       setStep('finish')

@@ -442,7 +442,12 @@ export async function fetchHistory(profileId: string) {
           }
         : null
     })
-    .filter((row): row is HistoryRide & { mySeatStatus: SeatStatus } => Boolean(row))
+    .filter(
+      (row): row is HistoryRide & {
+        mySeatStatus: SeatStatus
+        mySeatInitiatedBy: 'rider' | 'driver'
+      } => row !== null,
+    )
 
   const rated = new Set(
     ((given.data ?? []) as { ride_id: string; rated_profile_id: string }[]).map(
