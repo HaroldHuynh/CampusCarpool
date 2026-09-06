@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../lib/supabase'
+import { asError, errorText } from '../lib/errorText'
 
 /**
  * seats_available is REMAINING seats, not capacity: reserve_ride_seat
@@ -132,7 +133,7 @@ export async function fetchOfferedRides(): Promise<OfferedRide[]> {
     .order('departure_at', { ascending: true })
 
   if (error) {
-    throw error
+    throw asError(error)
   }
 
   const me = await getMyProfile()
@@ -218,7 +219,7 @@ export async function offerRide(input: {
   })
 
   if (error) {
-    throw error
+    throw asError(error)
   }
 }
 
@@ -232,7 +233,7 @@ export async function requestSeat(rideId: string) {
   })
 
   if (error) {
-    throw error
+    throw asError(error)
   }
 
   return data as 'requested' | 'already_requested' | 'full' | 'own_ride' | 'not_open' | 'missing'
@@ -240,7 +241,7 @@ export async function requestSeat(rideId: string) {
 
 export async function fetchRideContacts(rideId: string): Promise<RideContact[]> {
   const { data, error } = await getSupabaseClient().rpc('get_ride_contacts', { target_ride_id: rideId })
-  if (error) throw error
+  if (error) throw asError(error)
   return (data ?? []) as RideContact[]
 }
 
@@ -252,7 +253,7 @@ export async function respondToSeatRequest(requestId: string, accept: boolean) {
   })
 
   if (error) {
-    throw error
+    throw asError(error)
   }
 
   return Boolean(data)
@@ -265,7 +266,7 @@ export async function removeRider(requestId: string) {
   })
 
   if (error) {
-    throw error
+    throw asError(error)
   }
 
   return Boolean(data)
@@ -278,7 +279,7 @@ export async function cancelSeat(rideId: string) {
   })
 
   if (error) {
-    throw error
+    throw asError(error)
   }
 
   return Boolean(data)
@@ -291,7 +292,7 @@ export async function cancelRide(rideId: string) {
   })
 
   if (error) {
-    throw error
+    throw asError(error)
   }
 
   return Boolean(data)
@@ -309,7 +310,7 @@ export async function fetchRideRequests(): Promise<RideRequest[]> {
     .order('departure_at', { ascending: true })
 
   if (error) {
-    throw error
+    throw asError(error)
   }
 
   return (data ?? []).map((row: Record<string, unknown>) => ({
@@ -359,7 +360,7 @@ export async function postRideRequest(input: {
   })
 
   if (error) {
-    throw error
+    throw asError(error)
   }
 }
 
@@ -373,7 +374,9 @@ export async function offerRideForRequest(input: {
     offered_seats: input.seatsAvailable,
     offered_price: input.pricePerSeat,
   })
-  if (error) throw error
+  // Supabase RPC errors arrive as a plain object, not an Error, so callers that
+  // check `instanceof Error` would drop the real reason. Re-throw a real Error.
+  if (error) throw new Error(errorText(error, 'Could not offer that ride.'))
   return data as string
 }
 
@@ -384,7 +387,7 @@ export async function closeRideRequest(requestId: number, profileId: string) {
   })
 
   if (error) {
-    throw error
+    throw asError(error)
   }
 }
 
@@ -501,7 +504,15 @@ export async function fetchHistory(profileId: string) {
     offered: (offered.data ?? []) as HistoryRide[],
     reserved,
     rated,
-    requests: (requests.data ?? []) as RideRequest[],
+    // "Your open requests" renders the offering driver by name, so the same
+    // lookup has to reach `requests` and not just `matchedOffers` — otherwise
+    // every offer reads "A driver offered you this ride".
+    requests: (requests.data ?? []).map((request) => ({
+      ...request,
+      matched_driver: matchedDriverByRide.get(request.matched_ride_id ?? '')?.driver ?? null,
+      matched_driver_profile_id:
+        matchedDriverByRide.get(request.matched_ride_id ?? '')?.profileId ?? null,
+    })) as RideRequest[],
     matchedOffers: (matchedData ?? []).map((request) => ({
       ...request,
       matched_driver: matchedDriverByRide.get(request.matched_ride_id ?? '')?.driver ?? null,
@@ -518,7 +529,7 @@ export async function respondToRideOffer(requestId: number, accept: boolean) {
   })
 
   if (error) {
-    throw error
+    throw asError(error)
   }
 
   return Boolean(data)
@@ -533,7 +544,7 @@ export async function rateUser(rideId: string, raterId: string, ratedId: string,
   })
 
   if (error) {
-    throw error
+    throw asError(error)
   }
 }
 
@@ -541,7 +552,7 @@ export async function fetchProfileCard(profileId: string): Promise<ProfileCard> 
   const { data, error } = await getSupabaseClient().rpc('get_profile_card', {
     target_profile_id: profileId,
   })
-  if (error) throw error
+  if (error) throw asError(error)
 
   const row = one(data as Omit<ProfileCard, 'reviews'> | Omit<ProfileCard, 'reviews'>[] | null)
   if (!row) throw new Error('Profile is unavailable.')
