@@ -26,6 +26,13 @@ import {
   type ContactMethod,
 } from './auth/auth'
 
+/** Supabase's 429 says "you can only request this after N seconds". */
+function cooldownFromError(message: string) {
+  const match = /after (\d+) seconds/.exec(message)
+
+  return match ? Number(match[1]) : 60
+}
+
 type Mode = 'signin' | 'signup'
 type Step = 'credentials' | 'verify' | 'finish' | 'reset'
 
@@ -56,6 +63,19 @@ function App() {
   // before the profile columns existed needs filling in.
   const [isClaiming, setIsClaiming] = useState(false)
   const [needsPassword, setNeedsPassword] = useState(false)
+  // Supabase enforces smtp_max_frequency (60s) per user between sends, so the
+  // resend button counts down instead of surfacing a raw 429.
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    if (cooldown <= 0) {
+      return
+    }
+
+    const timer = window.setTimeout(() => setCooldown(cooldown - 1), 1000)
+
+    return () => window.clearTimeout(timer)
+  }, [cooldown])
 
   async function enter(user: User | null) {
     setCurrentUser(user)
@@ -190,6 +210,28 @@ function App() {
     }
   }
 
+  async function handleResendReset() {
+    setErrorMessage('')
+    setIsResending(true)
+
+    try {
+      await sendPasswordReset(email)
+      setCooldown(60)
+      setErrorMessage('')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not send a new code.'
+
+      // A cooldown is not an error worth shouting about — show it on the button.
+      if (/after \d+ seconds|rate limit/i.test(message)) {
+        setCooldown(cooldownFromError(message))
+      } else {
+        setErrorMessage(message)
+      }
+    } finally {
+      setIsResending(false)
+    }
+  }
+
   async function handleVerify(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage('')
@@ -222,8 +264,15 @@ function App() {
 
     try {
       await resendSignUpCode(email)
+      setCooldown(60)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Could not resend the code.')
+      const message = error instanceof Error ? error.message : 'Could not resend the code.'
+
+      if (/after \d+ seconds|rate limit/i.test(message)) {
+        setCooldown(cooldownFromError(message))
+      } else {
+        setErrorMessage(message)
+      }
     } finally {
       setIsResending(false)
     }
@@ -442,11 +491,24 @@ function App() {
             <button
               type="button"
               className="auth-alt"
+              disabled={isResending || cooldown > 0}
+              onClick={handleResendReset}
+            >
+              {isResending
+                ? 'Sending...'
+                : cooldown > 0
+                  ? `Send a new code in ${cooldown}s`
+                  : 'Send a new code'}
+            </button>
+            <button
+              type="button"
+              className="auth-alt"
               onClick={() => {
                 setStep('credentials')
                 setCode('')
                 setPassword('')
-                          setNeedsPassword(false)
+                setNeedsPassword(false)
+                setCooldown(0)
                 setErrorMessage('')
               }}
             >
@@ -500,9 +562,13 @@ function App() {
               type="button"
               className="auth-alt"
               onClick={handleResend}
-              disabled={isResending}
+              disabled={isResending || cooldown > 0}
             >
-              {isResending ? 'Sending...' : 'Resend code'}
+              {isResending
+                ? 'Sending...'
+                : cooldown > 0
+                  ? `Resend in ${cooldown}s`
+                  : 'Resend code'}
             </button>
             <button
               type="button"
