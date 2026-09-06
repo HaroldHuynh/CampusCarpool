@@ -128,12 +128,16 @@ function HistoryPage({
   onSignOut,
   focusRequestId,
   focusRideId,
+  onFocusRequestHandled,
+  onFocusRideHandled,
 }: {
   profile: CampusProfile | null
   onToast: (t: string) => void
   onSignOut: () => void
   focusRequestId?: number | null
   focusRideId?: string | null
+  onFocusRequestHandled?: () => void
+  onFocusRideHandled?: () => void
 }) {
   const [offered, setOffered] = useState<HistoryRide[]>([])
   const [reserved, setReserved] = useState<HistoryRide[]>([])
@@ -174,15 +178,17 @@ function HistoryPage({
     if (!focusRideId || !offered.some((ride) => ride.id === focusRideId)) return
     window.requestAnimationFrame(() => {
       document.getElementById(`ride-${focusRideId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      onFocusRideHandled?.()
     })
-  }, [focusRideId, offered])
+  }, [focusRideId, offered, onFocusRideHandled])
 
   useEffect(() => {
     if (!focusRequestId || !requests.some((request) => request.id === focusRequestId)) return
     window.requestAnimationFrame(() => {
       document.getElementById(`request-${focusRequestId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      onFocusRequestHandled?.()
     })
-  }, [focusRequestId, requests])
+  }, [focusRequestId, requests, onFocusRequestHandled])
 
   useEffect(() => {
     getAccessRequest()

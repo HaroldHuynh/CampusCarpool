@@ -690,6 +690,8 @@ function App() {
             onSignOut={handleSignOut}
             focusRequestId={focusRequestId}
             focusRideId={focusRideId}
+            onFocusRequestHandled={() => setFocusRequestId(null)}
+            onFocusRideHandled={() => setFocusRideId(null)}
           />
         )}
 
