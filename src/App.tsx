@@ -286,7 +286,7 @@ function App() {
         // where this has to land.
         items.push({
           id: `matched:${request.id}:${request.matched_ride_id}`,
-          text: `A driver offered a ride from ${request.origin} to ${request.destination}`,
+          text: `${request.matched_driver?.display_name ?? 'A driver'} offered a ride from ${request.origin} to ${request.destination}`,
           goTo: 'profile',
           targetId: `request-${request.id}`,
         })

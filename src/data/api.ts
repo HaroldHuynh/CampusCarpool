@@ -77,6 +77,8 @@ export type RideRequest = {
   requester_profile_id: string | null
   is_closed: boolean
   matched_ride_id?: string | null
+  matched_driver?: Driver | null
+  matched_driver_profile_id?: string | null
 }
 
 export type CampusProfile = {
@@ -450,6 +452,22 @@ export async function fetchHistory(profileId: string) {
     .eq('is_closed', false)
     .not('matched_ride_id', 'is', null)
 
+  const matchedRideIds = (matchedData ?? [])
+    .map((request) => request.matched_ride_id)
+    .filter((id): id is string => Boolean(id))
+  const { data: matchedRides } = matchedRideIds.length
+    ? await supabase
+        .from('rides')
+        .select('id, driver_profile_id, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count)')
+        .in('id', matchedRideIds)
+    : { data: [] }
+  const matchedDriverByRide = new Map(
+    (matchedRides ?? []).map((ride) => [ride.id, {
+      profileId: ride.driver_profile_id,
+      driver: one(ride.driver as Driver | Driver[] | null),
+    }]),
+  )
+
   // Carry my own seat status onto the ride so the caller can tell "waiting on
   // the driver" from "confirmed".
   const reserved = (reservations.data ?? [])
@@ -484,10 +502,11 @@ export async function fetchHistory(profileId: string) {
     reserved,
     rated,
     requests: (requests.data ?? []) as RideRequest[],
-    matchedOffers: (matchedData ?? []) as Pick<
-      RideRequest,
-      'id' | 'origin' | 'destination' | 'matched_ride_id'
-    >[],
+    matchedOffers: (matchedData ?? []).map((request) => ({
+      ...request,
+      matched_driver: matchedDriverByRide.get(request.matched_ride_id ?? '')?.driver ?? null,
+      matched_driver_profile_id: matchedDriverByRide.get(request.matched_ride_id ?? '')?.profileId ?? null,
+    })),
   }
 }
 

@@ -617,7 +617,17 @@ function HistoryPage({
 
                   {request.matched_ride_id ? (
                     <div className="seat-request">
-                      <span>A driver offered you this ride</span>
+                      <span>
+                        <button
+                          type="button"
+                          className="profile-trigger seat-profile"
+                          disabled={!request.matched_driver_profile_id}
+                          onClick={() => setProfileCardId(request.matched_driver_profile_id ?? null)}
+                        >
+                          {request.matched_driver?.display_name ?? 'A driver'}
+                        </button>{' '}
+                        offered you this ride
+                      </span>
                       <span className="seat-request-actions">
                         <button
                           type="button"
