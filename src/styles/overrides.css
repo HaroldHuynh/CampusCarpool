@@ -164,7 +164,7 @@
 .contact-popover { position:absolute; left:0; bottom:calc(100% + 8px); z-index:30; display:none; min-width:150px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:#fff; box-shadow:0 8px 24px rgba(33,62,51,.16); color:var(--ink); text-align:left; white-space:nowrap; }
 .contact-popover small,.contact-popover strong { display:block; }
 .contact-popover small { margin-bottom:2px; color:var(--muted); font-size:9px; text-transform:uppercase; }
-.contact-person:hover .contact-popover,.contact-person:focus .contact-popover,.contact-person:focus-within .contact-popover { display:block; }
+.contact-person:hover .contact-popover,.contact-person:focus-visible .contact-popover { display:block; }
 
 .bell-item:hover {
   background: var(--mint);
