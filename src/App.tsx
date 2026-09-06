@@ -803,6 +803,7 @@ function App() {
             onFocusRequestHandled={() => setFocusRequestId(null)}
             onFocusRideHandled={() => setFocusRideId(null)}
             onProfileSaved={refreshProfile}
+            onMessageProfile={openMessages}
           />
         )}
 

@@ -172,6 +172,7 @@ function HistoryPage({
   onFocusRequestHandled,
   onFocusRideHandled,
   onProfileSaved,
+  onMessageProfile,
 }: {
   profile: CampusProfile | null
   onToast: (t: string) => void
@@ -183,6 +184,12 @@ function HistoryPage({
   /** Names on ride cards and the header come from the profile row this form
    *  writes, so the app has to re-read it once a save lands. */
   onProfileSaved?: () => void
+  onMessageProfile?: (
+    profileId: string,
+    displayName: string,
+    ratingAverage: number,
+    ratingCount: number,
+  ) => void
 }) {
   const [offered, setOffered] = useState<HistoryRide[]>([])
   const [reserved, setReserved] = useState<HistoryRide[]>([])
@@ -739,8 +746,10 @@ function HistoryPage({
       {errorMessage ? <p className="form-error show">{errorMessage}</p> : null}
       <ProfileCardDialog
         profileId={profileCardId}
+        viewerProfileId={profile?.id}
         open={profileCardId !== null}
         onClose={() => setProfileCardId(null)}
+        onMessage={onMessageProfile}
       />
     </main>
   )
