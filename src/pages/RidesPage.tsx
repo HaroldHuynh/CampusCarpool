@@ -323,7 +323,11 @@ function RidesPage({
                           {ride.requests.some(
                             (r) => r.status === 'pending' && r.initiated_by === 'rider',
                           )
-                            ? `${ride.requests.filter((r) => r.status === 'pending' && r.initiated_by === 'rider').length} asked to join`
+                            ? (
+                                <button type="button" className="own-ride-link" onClick={() => onOpenMyRide(ride.id)}>
+                                  {ride.requests.filter((r) => r.status === 'pending' && r.initiated_by === 'rider').length} asked to join
+                                </button>
+                              )
                             : ride.requests.some(
                                   (r) => r.status === 'pending' && r.initiated_by === 'driver',
                                 )
