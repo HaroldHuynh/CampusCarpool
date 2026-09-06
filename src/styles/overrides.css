@@ -344,6 +344,9 @@
 
 .board-banner-blurb {
   margin: 6px 0 0;
+  /* Both boards reserve two lines so the banners are the same height even
+     when one blurb wraps and the other does not. */
+  min-height: 2.9em;
   max-width: 46ch;
   font-size: 13px;
   line-height: 1.5;
@@ -385,6 +388,14 @@
   .board-banner-actions {
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+/* On a narrow phone the longer blurb needs a third line; reserve it on both
+   so the two boards still match. */
+@media (max-width: 520px) {
+  .board-banner-blurb {
+    min-height: 4.4em;
   }
 }
 
