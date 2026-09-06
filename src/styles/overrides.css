@@ -87,7 +87,8 @@
    past them every visit, so they take far less vertical space here. */
 
 .hero {
-  min-height: 300px;
+  position: relative;
+  min-height: 340px;
   margin-bottom: 48px;
 }
 
@@ -101,9 +102,18 @@
 }
 
 @media (max-width: 800px) {
+  /* Below 800px campus.css makes .hero-art position:absolute while .hero
+     itself is unpositioned, so the art escapes to the page and lands on the
+     section below. Positioning .hero contains it, and overflow:hidden then
+     clips it; the height only has to cover the copy plus the 260px art. */
   .hero {
-    min-height: 0;
+    position: relative;
+    min-height: 470px;
     margin-bottom: 32px;
+  }
+
+  .hero-art {
+    bottom: 0;
   }
 
   .page-hero {
@@ -128,35 +138,38 @@
 
 .bell {
   position: relative;
-  border: 1px solid var(--line);
-  background: #ffffff;
-  border-radius: 999px;
-  width: 38px;
-  height: 38px;
-  font-size: 15px;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: none;
+  color: var(--ink);
   cursor: pointer;
+  opacity: 0.75;
 }
 
 .bell:hover {
-  border-color: var(--green);
+  opacity: 1;
 }
 
+.bell svg {
+  width: 19px;
+  height: 19px;
+  display: block;
+}
+
+/* Presence, not a count — a small dot reads faster than a number. */
 .bell-dot {
   position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background: var(--orange, #ff705b);
-  color: #ffffff;
-  font-size: 10px;
-  font-style: normal;
-  font-weight: 700;
-  line-height: 18px;
-  text-align: center;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e5484d;
+  border: 2px solid var(--cream);
+  box-sizing: content-box;
 }
 
 .bell-menu {

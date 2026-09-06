@@ -100,8 +100,16 @@ export function AppHeader({
             aria-expanded={open}
             onClick={() => setOpen(!open)}
           >
-            <span aria-hidden="true">🔔</span>
-            {notices.length > 0 ? <i className="bell-dot">{notices.length}</i> : null}
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M18 8.5a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16s-2-1.5-2-6.5Z"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+              />
+              <path d="M10.3 19a2 2 0 0 0 3.4 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+            {notices.length > 0 ? <i className="bell-dot" /> : null}
           </button>
 
           {open ? (
