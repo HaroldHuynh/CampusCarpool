@@ -325,8 +325,9 @@
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
-  /* Matches .requests exactly so the banner and the table share edges. */
-  max-width: 1140px;
+  /* Matches .requests exactly so the banner and the table share edges, and
+     keeps a gutter so the content never touches the window edge. */
+  width: min(1140px, 100% - 48px);
   margin: 24px auto 26px;
   padding: 22px 26px;
   border-radius: 16px;
@@ -355,8 +356,9 @@
 
 .board-banner-actions {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
   flex-shrink: 0;
 }
 
@@ -523,4 +525,36 @@
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
+}
+
+/* campus.css lets .requests and .profile-page run to the window edge once the
+   viewport passes their max-width; keep the same gutter as the banner. */
+.requests,
+.profile-page {
+  width: min(1140px, 100% - 48px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.bell-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bell-link:hover {
+  color: var(--green);
+  text-decoration: underline;
+}
+
+@media (max-width: 800px) {
+  .board-banner,
+  .requests,
+  .profile-page {
+    width: min(1140px, 100% - 32px);
+  }
 }

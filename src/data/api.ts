@@ -185,6 +185,19 @@ export async function respondToSeatRequest(requestId: string, accept: boolean) {
   return Boolean(data)
 }
 
+/** Driver drops one rider without calling off the trip. */
+export async function removeRider(requestId: string) {
+  const { data, error } = await getSupabaseClient().rpc('remove_rider', {
+    request_id: requestId,
+  })
+
+  if (error) {
+    throw error
+  }
+
+  return Boolean(data)
+}
+
 /** Releases a seat and puts it back on the ride, in one statement. */
 export async function cancelSeat(rideId: string) {
   const { data, error } = await getSupabaseClient().rpc('cancel_ride_seat', {

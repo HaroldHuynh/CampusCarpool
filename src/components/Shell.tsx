@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 export type View = 'requests' | 'rides' | 'profile'
 
-export type Notice = { id: string; text: string }
+export type Notice = { id: string; text: string; goTo?: View }
 
 export function AppHeader({
   view,
@@ -124,7 +124,20 @@ export function AppHeader({
               ) : (
                 notices.map((notice) => (
                   <div className="bell-item" key={notice.id}>
-                    <span>{notice.text}</span>
+                    {notice.goTo ? (
+                      <button
+                        type="button"
+                        className="bell-link"
+                        onClick={() => {
+                          onChangeView(notice.goTo!)
+                          setOpen(false)
+                        }}
+                      >
+                        {notice.text}
+                      </button>
+                    ) : (
+                      <span>{notice.text}</span>
+                    )}
                     <button
                       type="button"
                       className="bell-dismiss"

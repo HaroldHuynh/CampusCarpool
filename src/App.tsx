@@ -146,6 +146,7 @@ function App() {
             items.push({
               id: `ask:${seat.id}`,
               text: `${seat.rider_name} asked for a seat on ${route}`,
+              goTo: 'profile',
             })
           }
         }
@@ -155,11 +156,19 @@ function App() {
         const route = `${ride.origin} → ${ride.destination}`
 
         if (ride.mySeatStatus === 'accepted') {
-          items.push({ id: `ok:${ride.id}`, text: `Your seat on ${route} was confirmed` })
+          items.push({
+            id: `ok:${ride.id}`,
+            text: `Your seat on ${route} was confirmed`,
+            goTo: 'profile',
+          })
         }
 
         if (ride.mySeatStatus === 'declined') {
-          items.push({ id: `no:${ride.id}`, text: `Your request for ${route} was declined` })
+          items.push({
+            id: `no:${ride.id}`,
+            text: `Your request for ${route} was declined`,
+            goTo: 'rides',
+          })
         }
 
         if (ride.status === 'in_progress') {

@@ -4,6 +4,7 @@ import { getAccessRequest, saveProfile, type ContactMethod } from '../auth/auth'
 import {
   cancelRide,
   cancelSeat,
+  removeRider,
   respondToSeatRequest,
   closeRideRequest,
   fetchHistory,
@@ -338,11 +339,27 @@ function HistoryPage({
 
                   return (
                     <>
-                      {going.length > 0 ? (
-                        <p className="trip-riders">
-                          Riding with {going.map((r) => r.rider_name).join(', ')}
-                        </p>
-                      ) : null}
+                      {going.map((seat) => (
+                        <div className="seat-request" key={seat.id}>
+                          <span>{seat.rider_name}</span>
+                          <span className="seat-request-actions">
+                            <button
+                              type="button"
+                              className="mini"
+                              disabled={busyId === `drop:${seat.id}`}
+                              onClick={() =>
+                                runCancel(
+                                  `drop:${seat.id}`,
+                                  () => removeRider(seat.id),
+                                  `${seat.rider_name} removed.`,
+                                )
+                              }
+                            >
+                              Remove
+                            </button>
+                          </span>
+                        </div>
+                      ))}
 
                       {pending.map((seat) => (
                         <div className="seat-request" key={seat.id}>
