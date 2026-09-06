@@ -281,6 +281,7 @@ export async function fetchRideRequests(): Promise<RideRequest[]> {
       'id, rider_name, contact_info, origin, destination, departure_at, note, origin_lat, origin_lng, destination_lat, destination_lng, requester_profile_id, is_closed, requester:campus_profiles!requester_profile_id(display_name, rating_average, rating_count)',
     )
     .eq('is_closed', false)
+    .is('matched_ride_id', null)
     .gte('departure_at', new Date().toISOString())
     .order('departure_at', { ascending: true })
 
@@ -398,7 +399,7 @@ export async function fetchHistory(profileId: string) {
     supabase
       .from('ride_requests')
       .select(
-        'id, rider_name, contact_info, origin, destination, departure_at, note, requester_profile_id, is_closed',
+        'id, rider_name, contact_info, origin, destination, departure_at, note, requester_profile_id, is_closed, matched_ride_id',
       )
       .eq('requester_profile_id', profileId)
       .eq('is_closed', false)
@@ -447,6 +448,20 @@ export async function fetchHistory(profileId: string) {
       'id' | 'origin' | 'destination' | 'matched_ride_id'
     >[],
   }
+}
+
+/** The rider answers a driver's offer on their request. */
+export async function respondToRideOffer(requestId: number, accept: boolean) {
+  const { data, error } = await getSupabaseClient().rpc('respond_to_ride_offer', {
+    target_request_id: requestId,
+    accept,
+  })
+
+  if (error) {
+    throw error
+  }
+
+  return Boolean(data)
 }
 
 export async function rateUser(rideId: string, raterId: string, ratedId: string, stars: number) {

@@ -133,14 +133,17 @@ function App() {
   }, [step, mode, email, password])
 
   async function enter(user: User | null) {
-    setCurrentUser(user)
-
     if (!user) {
+      setCurrentUser(null)
       return
     }
 
     const profile = await getMyProfile()
     setCampusProfile(profile)
+    // Mount the data boards only after the client session and profile lookup
+    // have settled. Otherwise the first board request can race password sign-in
+    // and leave a stale load error even though a refresh succeeds.
+    setCurrentUser(user)
 
     if (profile) {
       loadNotices(profile.id)

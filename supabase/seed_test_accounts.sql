@@ -51,6 +51,54 @@ begin
 end;
 $$;
 
+-- The production confirmation trigger normally creates these records.  Keep
+-- the fixture self-contained so it also works with a schema-only local dump.
+insert into public.access_requests (
+  user_id, email, full_name, status, first_name, last_name, contact_method, contact_value
+)
+select
+  u.id,
+  u.email,
+  case u.email
+    when 'driver.test@calpoly.edu' then 'Dana Driver'
+    when 'rider.test@calpoly.edu' then 'Riley Rider'
+    else 'Robin Second'
+  end,
+  'approved',
+  case u.email
+    when 'driver.test@calpoly.edu' then 'Dana'
+    when 'rider.test@calpoly.edu' then 'Riley'
+    else 'Robin'
+  end,
+  case u.email
+    when 'driver.test@calpoly.edu' then 'Driver'
+    when 'rider.test@calpoly.edu' then 'Rider'
+    else 'Second'
+  end,
+  'phone',
+  case u.email
+    when 'driver.test@calpoly.edu' then '+18055550101'
+    when 'rider.test@calpoly.edu' then '+18055550102'
+    else '+18055550103'
+  end
+from auth.users u
+where u.email in ('driver.test@calpoly.edu', 'rider.test@calpoly.edu', 'rider2.test@calpoly.edu')
+on conflict (user_id) do update
+set
+  full_name = excluded.full_name,
+  status = excluded.status,
+  first_name = excluded.first_name,
+  last_name = excluded.last_name,
+  contact_method = excluded.contact_method,
+  contact_value = excluded.contact_value;
+
+insert into public.campus_profiles (display_name, user_id)
+select ar.full_name, ar.user_id
+from public.access_requests ar
+where ar.email in ('driver.test@calpoly.edu', 'rider.test@calpoly.edu', 'rider2.test@calpoly.edu')
+on conflict (user_id) do update
+set display_name = excluded.display_name;
+
 select u.email, p.display_name, p.id as profile_id
 from auth.users u
 left join public.campus_profiles p on p.user_id = u.id

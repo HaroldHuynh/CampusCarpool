@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import ContactFields from '../components/ContactFields'
+import { useLiveData } from '../lib/useLiveData'
 import { formatPrice } from '../components/Shell'
 import { getAccessRequest, saveProfile, type ContactMethod } from '../auth/auth'
 import {
@@ -7,6 +8,7 @@ import {
   cancelSeat,
   removeRider,
   respondToSeatRequest,
+  respondToRideOffer,
   closeRideRequest,
   fetchHistory,
   rateUser,
@@ -55,7 +57,16 @@ function TripCard({
       </div>
       <div className="trip-meta">
         <strong>${formatPrice(ride.price_per_seat)}</strong>
-        <span>{role === 'Driver' ? `${ride.seats_available} seats open` : 'Reserved'}</span>
+        <span>
+          {role === 'Driver'
+            ? `${ride.seats_available} seats open`
+            : // A seat is only yours once it is accepted; a pending one is
+              // either your request awaiting the driver, or a driver's offer
+              // awaiting you.
+              ride.mySeatStatus === 'pending'
+              ? 'Not confirmed'
+              : 'Reserved'}
+        </span>
       </div>
     </article>
   )
@@ -152,6 +163,8 @@ function HistoryPage({
   useEffect(() => {
     load()
   }, [load])
+
+  useLiveData(load, 'profile-history')
 
   useEffect(() => {
     getAccessRequest()
@@ -440,6 +453,43 @@ function HistoryPage({
                     {request.origin} <span>→</span> {request.destination}
                   </h3>
                   <p>{when(request.departure_at)}</p>
+
+                  {request.matched_ride_id ? (
+                    <div className="seat-request">
+                      <span>A driver offered you this ride</span>
+                      <span className="seat-request-actions">
+                        <button
+                          type="button"
+                          className="mini accept"
+                          disabled={busyId === `offer:${request.id}`}
+                          onClick={() =>
+                            runCancel(
+                              `offer:${request.id}`,
+                              () => respondToRideOffer(request.id, true),
+                              'Ride accepted.',
+                            )
+                          }
+                        >
+                          Accept
+                        </button>
+                        <button
+                          type="button"
+                          className="mini"
+                          disabled={busyId === `offer:${request.id}`}
+                          onClick={() =>
+                            runCancel(
+                              `offer:${request.id}`,
+                              () => respondToRideOffer(request.id, false),
+                              'Offer declined.',
+                            )
+                          }
+                        >
+                          Decline
+                        </button>
+                      </span>
+                    </div>
+                  ) : null}
+
                   <button
                     type="button"
                     className="cancel-link"

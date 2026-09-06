@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Modal, formatPrice, formatWhen, ratingLabel } from '../components/Shell'
 import PageBanner from '../components/PageBanner'
+import { useLiveData } from '../lib/useLiveData'
 import MapButton from '../components/MapButton'
 import LocationPicker, { type PickedLocation } from '../components/LocationPicker'
 import ProfileCardDialog from '../components/ProfileCardDialog'
@@ -88,6 +89,9 @@ function RidesPage({
   useEffect(() => {
     load()
   }, [])
+
+  // Rides, requests and seats all change under us while the page is open.
+  useLiveData(load, 'rides-board')
 
   const shown = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -191,9 +195,6 @@ function RidesPage({
                 onChange={(event) => setSearch(event.target.value)}
               />
             </label>
-            <button className="secondary" type="button" onClick={load} aria-label="Refresh rides">
-              ↻
-            </button>
           </div>
         </div>
 
