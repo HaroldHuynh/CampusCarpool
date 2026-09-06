@@ -39,11 +39,26 @@ type Step = 'credentials' | 'verify' | 'finish' | 'reset'
 function App() {
   const [mode, setMode] = useState<Mode>('signin')
   const [step, setStep] = useState<Step>('credentials')
-  const [view, setView] = useState<View>('requests')
+  const [view, setView] = useState<View>('rides')
   const [campusProfile, setCampusProfile] = useState<CampusProfile | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [notices, setNotices] = useState<Notice[]>([])
+  const [dismissed, setDismissed] = useState<Set<string>>(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('cc-dismissed-notices') ?? '[]') as string[])
+    } catch {
+      return new Set<string>()
+    }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cc-dismissed-notices', JSON.stringify([...dismissed]))
+    } catch {
+      // A private window can refuse storage; dismissing just will not persist.
+    }
+  }, [dismissed])
 
   function showToast(text: string) {
     setToastMessage(text)
@@ -109,57 +124,66 @@ function App() {
   }, [])
 
   /**
-   * Derived from existing rows rather than a notifications table: who has
-   * taken a seat on your trips, and which of your own trips are imminent.
+   * What has actually happened, not what is scheduled: a seat someone asked
+   * for, a request the driver answered, a trip that got under way. Dismissed
+   * ids live in localStorage so clearing one sticks across reloads.
    */
   async function loadNotices(profileId: string) {
     try {
       const history = await fetchHistory(profileId)
-      const now = Date.now()
-      const soon = now + 48 * 60 * 60 * 1000
       const items: Notice[] = []
 
       for (const ride of history.offered) {
-        const departs = new Date(ride.departure_at).getTime()
-
-        for (const passenger of ride.ride_reservations ?? []) {
-          if (departs >= now) {
-            items.push({
-              id: `${ride.id}:${passenger.rider_profile_id ?? passenger.rider_name}`,
-              text: `${passenger.rider_name} took a seat to ${ride.destination}`,
-              when: new Date(ride.departure_at).toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-              }),
-            })
-          }
+        if (ride.status === 'completed' || ride.status === 'cancelled') {
+          continue
         }
 
-        if (departs >= now && departs <= soon) {
-          items.push({
-            id: `soon:${ride.id}`,
-            text: `You are driving to ${ride.destination} soon`,
-            when: 'within 48h',
-          })
+        const route = `${ride.origin} → ${ride.destination}`
+
+        for (const seat of ride.ride_reservations ?? []) {
+          if (seat.status === 'pending') {
+            items.push({
+              id: `ask:${seat.id}`,
+              text: `${seat.rider_name} asked for a seat on ${route}`,
+            })
+          }
         }
       }
 
       for (const ride of history.reserved) {
-        const departs = new Date(ride.departure_at).getTime()
+        const route = `${ride.origin} → ${ride.destination}`
 
-        if (departs >= now && departs <= soon) {
-          items.push({
-            id: `ride:${ride.id}`,
-            text: `Your ride to ${ride.destination} is coming up`,
-            when: 'within 48h',
-          })
+        if (ride.mySeatStatus === 'accepted') {
+          items.push({ id: `ok:${ride.id}`, text: `Your seat on ${route} was confirmed` })
+        }
+
+        if (ride.mySeatStatus === 'declined') {
+          items.push({ id: `no:${ride.id}`, text: `Your request for ${route} was declined` })
+        }
+
+        if (ride.status === 'in_progress') {
+          items.push({ id: `go:${ride.id}`, text: `${route} is under way` })
         }
       }
 
-      setNotices(items.slice(0, 8))
+      setNotices(items.filter((item) => !dismissed.has(item.id)))
     } catch {
       setNotices([])
     }
+  }
+
+  function dismissNotice(id: string) {
+    const next = new Set(dismissed)
+    next.add(id)
+    setDismissed(next)
+    setNotices((current) => current.filter((item) => item.id !== id))
+  }
+
+  function clearNotices() {
+    const next = new Set(dismissed)
+    notices.forEach((item) => next.add(item.id))
+    setDismissed(next)
+    setNotices([])
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -484,6 +508,8 @@ function App() {
                 : undefined
           }
           notices={notices}
+          onDismissNotice={dismissNotice}
+          onClearNotices={clearNotices}
         />
 
         {view === 'requests' ? (
@@ -493,6 +519,7 @@ function App() {
             onOpenModal={() => setModalOpen(true)}
             onCloseModal={() => setModalOpen(false)}
             onToast={showToast}
+            onGoToRides={() => setView('rides')}
           />
         ) : view === 'rides' ? (
           <RidesPage

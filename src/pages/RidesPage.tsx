@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Modal, formatWhen, ratingLabel } from '../components/Shell'
+import PageBanner from '../components/PageBanner'
 import {
   fetchOfferedRides,
   offerRide,
@@ -127,21 +128,19 @@ function RidesPage({
 
   return (
     <main>
-      <section className="page-hero">
-        <p className="eyebrow">FIND YOUR WAY THERE</p>
-        <h1>Rides offered by students</h1>
-        <p>Browse upcoming trips, reserve a seat, or share your own empty seats.</p>
-        <button className="primary page-hero-button" type="button" onClick={onOpenModal}>
-          Offer a ride <span>→</span>
-        </button>
-      </section>
+      <PageBanner
+        eyebrow="FIND A RIDE"
+        title="Rides leaving campus"
+        blurb="Ask a driver for a seat. They confirm you before it's yours."
+        primary={{ label: 'Offer a ride', onClick: onOpenModal }}
+        secondary={{ label: "Can't find one? Post a request →", onClick: onGoToRequests }}
+      />
 
       <section className="requests offered-page">
         <div className="section-heading">
           <div>
             <p className="eyebrow">UPCOMING TRIPS</p>
             <h2>Available rides</h2>
-            <p>Seats shared by drivers in your campus community.</p>
           </div>
           <div className="toolbar">
             <label className="search">
@@ -316,15 +315,6 @@ function RidesPage({
           </div>
         </div>
 
-        <div className="request-cta">
-          <div>
-            <p className="eyebrow">CAN'T FIND YOUR TRIP?</p>
-            <h2>Let drivers know where you need to go.</h2>
-          </div>
-          <button className="primary cta-link" type="button" onClick={onGoToRequests}>
-            View ride requests <span>→</span>
-          </button>
-        </div>
       </section>
 
       <Modal

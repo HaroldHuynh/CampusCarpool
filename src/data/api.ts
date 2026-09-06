@@ -301,6 +301,7 @@ export type HistoryRide = {
   started_at: string | null
   driver?: Driver | null
   ride_reservations?: SeatRequest[]
+  mySeatStatus?: SeatStatus
 }
 
 export async function fetchHistory(profileId: string) {
@@ -315,7 +316,7 @@ export async function fetchHistory(profileId: string) {
     supabase
       .from('ride_reservations')
       .select(
-        'ride_id, rides(*, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count))',
+        'ride_id, status, rides(*, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count))',
       )
       .eq('rider_profile_id', profileId),
     supabase.from('user_ratings').select('ride_id, rated_profile_id').eq('rater_profile_id', profileId),
@@ -337,9 +338,15 @@ export async function fetchHistory(profileId: string) {
     throw reservations.error
   }
 
+  // Carry my own seat status onto the ride so the caller can tell "waiting on
+  // the driver" from "confirmed".
   const reserved = (reservations.data ?? [])
-    .map((row: Record<string, unknown>) => one(row.rides as HistoryRide | HistoryRide[] | null))
-    .filter((row): row is HistoryRide => Boolean(row))
+    .map((row: Record<string, unknown>) => {
+      const ride = one(row.rides as HistoryRide | HistoryRide[] | null)
+
+      return ride ? { ...ride, mySeatStatus: row.status as SeatStatus } : null
+    })
+    .filter((row): row is HistoryRide & { mySeatStatus: SeatStatus } => Boolean(row))
 
   const rated = new Set(
     ((given.data ?? []) as { ride_id: string; rated_profile_id: string }[]).map(

@@ -2,21 +2,29 @@ import { useEffect, useRef, useState } from 'react'
 
 export type View = 'requests' | 'rides' | 'profile'
 
-export type Notice = { id: string; text: string; when: string }
+export type Notice = { id: string; text: string }
 
 export function AppHeader({
   view,
   onChangeView,
   action,
   notices,
+  onDismissNotice,
+  onClearNotices,
 }: {
   view: View
   onChangeView: (view: View) => void
   action?: { label: string; onClick: () => void }
   notices: Notice[]
+  onDismissNotice: (id: string) => void
+  onClearNotices: () => void
 }) {
   const [open, setOpen] = useState(false)
   const bellRef = useRef<HTMLDivElement>(null)
+
+  // Changing view should dismiss the menu; leaving it hanging over the next
+  // page reads like a stuck overlay.
+  useEffect(() => setOpen(false), [view])
 
   // Close on any click outside the bell, the way a menu should behave.
   useEffect(() => {
@@ -42,13 +50,23 @@ export function AppHeader({
         href="#"
         onClick={(event) => {
           event.preventDefault()
-          onChangeView('requests')
+          onChangeView('rides')
         }}
       >
         <span className="brand-mark">↗</span> campus<span>carpool</span>
       </a>
 
       <nav aria-label="Main navigation">
+        <a
+          href="#rides"
+          className={view === 'rides' ? 'active' : undefined}
+          onClick={(event) => {
+            event.preventDefault()
+            onChangeView('rides')
+          }}
+        >
+          Find a ride
+        </a>
         <a
           href="#requests"
           className={view === 'requests' ? 'active' : undefined}
@@ -58,16 +76,6 @@ export function AppHeader({
           }}
         >
           Ride requests
-        </a>
-        <a
-          href="#rides"
-          className={view === 'rides' ? 'active' : undefined}
-          onClick={(event) => {
-            event.preventDefault()
-            onChangeView('rides')
-          }}
-        >
-          Rides offered
         </a>
         <a
           href="#profile"
@@ -114,13 +122,29 @@ export function AppHeader({
 
           {open ? (
             <div className="bell-menu" role="menu">
+              <div className="bell-head">
+                <span>Activity</span>
+                {notices.length > 0 ? (
+                  <button type="button" className="bell-clear" onClick={onClearNotices}>
+                    Clear all
+                  </button>
+                ) : null}
+              </div>
+
               {notices.length === 0 ? (
                 <p className="bell-empty">Nothing new.</p>
               ) : (
                 notices.map((notice) => (
                   <div className="bell-item" key={notice.id}>
                     <span>{notice.text}</span>
-                    <small>{notice.when}</small>
+                    <button
+                      type="button"
+                      className="bell-dismiss"
+                      aria-label="Dismiss"
+                      onClick={() => onDismissNotice(notice.id)}
+                    >
+                      ×
+                    </button>
                   </div>
                 ))
               )}

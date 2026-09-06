@@ -82,46 +82,6 @@
   outline: none;
 }
 
-/* ---------- banners ---------- */
-/* The originals were sized for a marketing landing page; in an app you scroll
-   past them every visit, so they take far less vertical space here. */
-
-.hero {
-  position: relative;
-  min-height: 340px;
-  margin-bottom: 48px;
-}
-
-.page-hero {
-  padding: 40px 44px;
-  margin-bottom: 40px;
-}
-
-.page-hero h1 {
-  font-size: 34px;
-}
-
-@media (max-width: 800px) {
-  /* Below 800px campus.css makes .hero-art position:absolute while .hero
-     itself is unpositioned, so the art escapes to the page and lands on the
-     section below. Positioning .hero contains it, and overflow:hidden then
-     clips it; the height only has to cover the copy plus the 260px art. */
-  .hero {
-    position: relative;
-    min-height: 470px;
-    margin-bottom: 32px;
-  }
-
-  .hero-art {
-    bottom: 0;
-  }
-
-  .page-hero {
-    padding: 28px 22px;
-    margin-bottom: 28px;
-  }
-}
-
 /* ---------- header: notifications ---------- */
 
 /* Reserved even when a view has no action button, so moving between tabs
@@ -376,4 +336,146 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   vertical-align: middle;
+}
+
+/* ---------- board banner ---------- */
+
+.board-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  max-width: 1240px;
+  margin: 24px auto 26px;
+  padding: 22px 26px;
+  border-radius: 16px;
+  background: var(--mint);
+}
+
+.board-banner h1 {
+  margin: 2px 0 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: -0.8px;
+  color: var(--ink);
+}
+
+.board-banner-blurb {
+  margin: 6px 0 0;
+  max-width: 46ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4e6960;
+}
+
+.board-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.board-banner-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--green);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.board-banner-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 800px) {
+  .board-banner {
+    margin: 16px 18px 20px;
+    padding: 18px 20px;
+  }
+
+  .board-banner h1 {
+    font-size: 23px;
+  }
+
+  .board-banner-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* ---------- notification menu ---------- */
+
+.bell-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid var(--hairline, #ebeee9);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.bell-clear {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--green);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.bell-clear:hover {
+  text-decoration: underline;
+}
+
+.bell-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bell-dismiss {
+  flex-shrink: 0;
+  border: 0;
+  background: none;
+  padding: 0 2px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bell-dismiss:hover {
+  color: var(--ink);
+}
+
+/* ---------- stop layout shifting ---------- */
+
+/* Request seat / Withdraw / Asking… are different widths, so the column
+   resized on every click and nudged the table around. */
+.reserve {
+  min-width: 116px;
+  text-align: center;
+}
+
+.row-actions .reserve {
+  min-width: 116px;
+}
+
+/* Save sits under the left edge of the fields it belongs to. */
+.details-form .form-actions {
+  justify-content: flex-start;
 }
