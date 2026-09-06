@@ -472,7 +472,18 @@
 .profile-reviews article { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 12px; }
 .profile-reviews article span { color: #a36b00; letter-spacing: 1px; }
 .review-empty { color: var(--muted); font-size: 12px; }
-.profile-message-button { justify-self: start; }
+.profile-message-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  width: auto;
+  height: auto;
+  min-height: 38px;
+  padding: 8px 14px;
+  font-size: 13px;
+  white-space: nowrap;
+}
 
 @media (max-width: 800px) {
   .profile-card-dialog { padding-left: 21px; padding-right: 21px; }
