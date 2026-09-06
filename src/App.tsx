@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import './styles/auth.css'
-import { AppHeader, SiteFooter, Toast, type Notice, type View } from './components/Shell'
+import { AppHeader, Toast, type Notice, type View } from './components/Shell'
 import RequestsPage from './pages/RequestsPage'
 import RidesPage from './pages/RidesPage'
 import HistoryPage from './pages/HistoryPage'
@@ -754,7 +754,6 @@ function App() {
           />
         )}
 
-        <SiteFooter />
         <Toast message={toastMessage} />
       </>
     )
