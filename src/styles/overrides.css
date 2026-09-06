@@ -346,15 +346,15 @@
 .board-banner-actions {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
 }
 
 .board-banner-link {
   border: 0;
   background: none;
-  padding: 0;
+  padding: 0 8px;
   color: var(--green);
   font: inherit;
   font-size: 13px;

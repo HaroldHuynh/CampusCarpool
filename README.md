@@ -61,6 +61,21 @@ edit, so names and ratings could be spoofed.
 The `@calpoly.edu` rule is enforced by the `only_calpoly_users` auth hook, not
 just by the form — the client check alone is bypassable.
 
+Supabase email confirmations must stay enabled. The app expects the signup OTP
+to confirm the account, and that confirmation is what creates the matching
+`access_requests` row. A scheduled cleanup removes abandoned, unconfirmed Auth
+users after 2 hours so a half-finished signup does not permanently reserve the
+email address.
+
+For hosted Supabase, mirror the local auth settings in the dashboard: enable
+email confirmations, configure a production SMTP provider, and keep the hourly
+email limit high enough for signup testing. The local `supabase/config.toml`
+does not automatically change hosted Auth settings.
+
+If a user needs to be removed manually, delete the Supabase Auth user. Deleting
+only `access_requests` can leave an Auth row behind, which blocks future signup
+attempts for that email.
+
 ## Writes go through RPCs
 
 Reserving and rating do **not** insert directly:

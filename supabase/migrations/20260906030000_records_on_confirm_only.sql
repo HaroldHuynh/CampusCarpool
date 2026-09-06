@@ -8,6 +8,8 @@
 -- still reserves the email so nobody else can take it.
 
 drop trigger if exists on_auth_user_created_create_request on auth.users;
+drop trigger if exists on_auth_user_confirmed_create_request on auth.users;
+drop trigger if exists on_auth_user_created_confirmed on auth.users;
 
 -- Same body as before; only when it runs changes.
 create trigger on_auth_user_confirmed_create_request

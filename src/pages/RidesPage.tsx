@@ -135,7 +135,7 @@ function RidesPage({
         eyebrow="FIND A RIDE"
         title="Rides leaving campus"
         primary={{ label: 'Offer a ride', onClick: onOpenModal }}
-        secondary={{ label: "Can't find one? Post a request →", onClick: onGoToRequests }}
+        secondary={{ label: 'Post a request →', onClick: onGoToRequests }}
       />
 
       <section className="requests offered-page">

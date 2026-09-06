@@ -210,6 +210,7 @@ function App() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage('')
+    setCooldown(0)
 
     if (!isCalPolyEmail(email)) {
       setErrorMessage('Use your @calpoly.edu email address.')
@@ -220,6 +221,9 @@ function App() {
 
     try {
       if (mode === 'signup') {
+        setIsClaiming(false)
+        setNeedsPassword(false)
+
         const result = await signUpWithPassword({
           email,
           password,
@@ -229,15 +233,30 @@ function App() {
           contactValue,
         })
 
-        // Registered already (e.g. from the old invite flow): send a code so
-        // they can claim the account and set a password instead.
+        // A previous abandoned signup can leave an unconfirmed auth.users row
+        // without an access_requests row. Prefer the signup OTP first so the
+        // confirmation trigger can create the missing app records.
         if (result.alreadyRegistered) {
-          await sendClaimCode(email)
-          setIsClaiming(true)
-          setNeedsPassword(true)
+          try {
+            await resendSignUpCode(email)
+            setIsClaiming(false)
+            setNeedsPassword(false)
+          } catch (resendError) {
+            const resendMessage =
+              resendError instanceof Error ? resendError.message : 'Could not send a new code.'
+
+            if (!/already|registered|confirm/i.test(resendMessage)) {
+              throw resendError
+            }
+
+            await sendClaimCode(email)
+            setIsClaiming(true)
+            setNeedsPassword(true)
+          }
         }
 
         setPassword('')
+        setCooldown(60)
         setStep('verify')
         return
       }
@@ -251,7 +270,22 @@ function App() {
       // An unconfirmed account is not a dead end — send a fresh code instead.
       if (/not confirmed/i.test(message)) {
         setStep('verify')
-        resendSignUpCode(email).catch(() => {})
+        try {
+          await resendSignUpCode(email)
+          setCooldown(60)
+        } catch (resendError) {
+          const resendMessage =
+            resendError instanceof Error ? resendError.message : 'Could not send a new code.'
+
+          if (/after \d+ seconds|rate limit/i.test(resendMessage)) {
+            setCooldown(cooldownFromError(resendMessage))
+          } else {
+            setErrorMessage(resendMessage)
+          }
+        }
+      } else if (/after \d+ seconds|rate limit/i.test(message)) {
+        setCooldown(cooldownFromError(message))
+        setErrorMessage('Email is cooling down. Try the resend button when it unlocks.')
       } else {
         setErrorMessage(message)
       }
@@ -372,7 +406,12 @@ function App() {
     setIsResending(true)
 
     try {
-      await resendSignUpCode(email)
+      if (isClaiming) {
+        await sendClaimCode(email)
+      } else {
+        await resendSignUpCode(email)
+      }
+
       setCooldown(60)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not resend the code.'
@@ -742,18 +781,15 @@ function App() {
           ) : null}
 
           <label htmlFor="email">Cal Poly email</label>
-          {/* Deliberately not type="email": the browser rejects a bare
-              username before the form ever submits. */}
           <input
             id="email"
             name="email"
-            type="text"
+            type="email"
             inputMode="email"
             autoCapitalize="none"
             spellCheck={false}
             value={email}
             autoComplete="email"
-            placeholder="you@calpoly.edu or just your username"
             onChange={(event) => setEmail(event.target.value)}
           />
 

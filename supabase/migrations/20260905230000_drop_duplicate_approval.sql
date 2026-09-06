@@ -6,7 +6,13 @@
 drop trigger if exists on_auth_user_created on auth.users;
 drop function if exists public.handle_new_user();
 
-drop trigger if exists profiles_stamp_approved_at on public.profiles;
+do $$
+begin
+  if to_regclass('public.profiles') is not null then
+    drop trigger if exists profiles_stamp_approved_at on public.profiles;
+  end if;
+end;
+$$;
 drop function if exists public.stamp_approved_at();
 
 drop function if exists public.is_approved();

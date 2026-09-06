@@ -1,7 +1,5 @@
 import { getSupabaseClient } from '../lib/supabase'
 
-const CAL_POLY_EMAIL_DOMAIN = '@calpoly.edu'
-
 export type AccountStatus = 'pending' | 'approved' | 'denied'
 
 export type ContactMethod = 'phone' | 'instagram'
@@ -32,24 +30,13 @@ export function isProfileIncomplete(row: AccessRequest | null) {
   return !row || !row.first_name || !row.last_name || !row.contact_value
 }
 
-/**
- * Everyone here is at the same domain, so typing it is busywork: a bare
- * username is treated as @calpoly.edu. Anything already containing an @ is
- * left alone, so a wrong domain still fails the check rather than being
- * silently rewritten.
- */
+/** Normalizes casing and incidental whitespace without changing the address. */
 export function normalizeEmail(email: string) {
-  const trimmed = email.trim().toLowerCase()
-
-  if (trimmed === '' || trimmed.includes('@')) {
-    return trimmed
-  }
-
-  return `${trimmed}${CAL_POLY_EMAIL_DOMAIN}`
+  return email.trim().toLowerCase()
 }
 
 export function isCalPolyEmail(email: string) {
-  return normalizeEmail(email).endsWith(CAL_POLY_EMAIL_DOMAIN)
+  return /^[^@\s]+@calpoly\.edu$/.test(normalizeEmail(email))
 }
 
 function assertCalPolyEmail(email: string) {
