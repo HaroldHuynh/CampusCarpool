@@ -269,14 +269,19 @@ export async function saveProfile(details: {
     throw new Error('Enter both your first and last name.')
   }
 
-  const contactValue = normalizeContact(details.contactMethod, details.contactValue)
+  // A blank contact leaves the stored one alone rather than failing the whole
+  // save: update_my_profile coalesces nulls, so the names still go through.
+  const hasContact = details.contactValue.trim() !== ''
+  const contactValue = hasContact
+    ? normalizeContact(details.contactMethod, details.contactValue)
+    : null
 
   const supabase = getSupabaseClient()
 
   const { error } = await supabase.rpc('update_my_profile', {
     p_first_name: firstName,
     p_last_name: lastName,
-    p_contact_method: details.contactMethod,
+    p_contact_method: hasContact ? details.contactMethod : null,
     p_contact_value: contactValue,
   })
 

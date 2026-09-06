@@ -1,18 +1,46 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-export type View = 'requests' | 'rides' | 'map' | 'profile'
+export type View = 'requests' | 'rides' | 'profile'
+
+export type Notice = { id: string; text: string }
 
 export function AppHeader({
   view,
   onChangeView,
-  action,
-  onSignOut,
+  notices,
+  onDismissNotice,
+  onClearNotices,
 }: {
   view: View
   onChangeView: (view: View) => void
-  action?: { label: string; onClick: () => void }
-  onSignOut: () => void
+  notices: Notice[]
+  onDismissNotice: (id: string) => void
+  onClearNotices: () => void
 }) {
+  const [open, setOpen] = useState(false)
+  const bellRef = useRef<HTMLDivElement>(null)
+
+  // Changing view should dismiss the menu; leaving it hanging over the next
+  // page reads like a stuck overlay.
+  useEffect(() => setOpen(false), [view])
+
+  // Close on any click outside the bell, the way a menu should behave.
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    function onDocClick(event: MouseEvent) {
+      if (bellRef.current && !bellRef.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', onDocClick)
+
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [open])
+
   return (
     <header className="site-header">
       <a
@@ -20,13 +48,23 @@ export function AppHeader({
         href="#"
         onClick={(event) => {
           event.preventDefault()
-          onChangeView('requests')
+          onChangeView('rides')
         }}
       >
         <span className="brand-mark">↗</span> campus<span>carpool</span>
       </a>
 
       <nav aria-label="Main navigation">
+        <a
+          href="#rides"
+          className={view === 'rides' ? 'active' : undefined}
+          onClick={(event) => {
+            event.preventDefault()
+            onChangeView('rides')
+          }}
+        >
+          Find a ride
+        </a>
         <a
           href="#requests"
           className={view === 'requests' ? 'active' : undefined}
@@ -36,26 +74,6 @@ export function AppHeader({
           }}
         >
           Ride requests
-        </a>
-        <a
-          href="#rides"
-          className={view === 'rides' ? 'active' : undefined}
-          onClick={(event) => {
-            event.preventDefault()
-            onChangeView('rides')
-          }}
-        >
-          Rides offered
-        </a>
-        <a
-          href="#map"
-          className={view === 'map' ? 'active' : undefined}
-          onClick={(event) => {
-            event.preventDefault()
-            onChangeView('map')
-          }}
-        >
-          Map
         </a>
         <a
           href="#profile"
@@ -70,14 +88,57 @@ export function AppHeader({
       </nav>
 
       <div className="header-actions">
-        {action ? (
-          <button className="header-button" type="button" onClick={action.onClick}>
-            {action.label}
+        <div className="bell-wrap" ref={bellRef}>
+          <button
+            type="button"
+            className="bell"
+            aria-label={`Notifications${notices.length ? ` (${notices.length})` : ''}`}
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M18 8.5a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16s-2-1.5-2-6.5Z"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+              />
+              <path d="M10.3 19a2 2 0 0 0 3.4 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+            {notices.length > 0 ? <i className="bell-dot" /> : null}
           </button>
-        ) : null}
-        <button className="text-button" type="button" onClick={onSignOut}>
-          Sign out
-        </button>
+
+          {open ? (
+            <div className="bell-menu" role="menu">
+              <div className="bell-head">
+                <span>Activity</span>
+                {notices.length > 0 ? (
+                  <button type="button" className="bell-clear" onClick={onClearNotices}>
+                    Clear all
+                  </button>
+                ) : null}
+              </div>
+
+              {notices.length === 0 ? (
+                <p className="bell-empty">Nothing new.</p>
+              ) : (
+                notices.map((notice) => (
+                  <div className="bell-item" key={notice.id}>
+                    <span>{notice.text}</span>
+                    <button
+                      type="button"
+                      className="bell-dismiss"
+                      aria-label="Dismiss"
+                      onClick={() => onDismissNotice(notice.id)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   )
@@ -89,7 +150,6 @@ export function SiteFooter() {
       <a className="brand" href="#">
         <span className="brand-mark">↗</span> campus<span>carpool</span>
       </a>
-      <p>Made for students who are going places.</p>
       <span>© 2026 CampusCarpool</span>
     </footer>
   )

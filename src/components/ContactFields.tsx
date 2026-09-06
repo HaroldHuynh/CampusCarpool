@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import PhoneField from './PhoneField'
 import type { ContactMethod } from '../auth/auth'
 
@@ -12,6 +13,24 @@ type Props = {
 /** Contact details are shared both ways — riders and drivers each need to
  *  reach the other — so the copy here stays neutral about which you are. */
 function ContactFields({ idPrefix, method, value, onMethodChange, onValueChange }: Props) {
+  // Only one contact goes to the database, but switching tabs should not throw
+  // away what you already typed (or what was loaded) for the other one.
+  const remembered = useRef<Record<ContactMethod, string>>({ phone: '', instagram: '' })
+
+  useEffect(() => {
+    remembered.current[method] = value
+  }, [method, value])
+
+  function switchTo(next: ContactMethod) {
+    if (next === method) {
+      return
+    }
+
+    remembered.current[method] = value
+    onMethodChange(next)
+    onValueChange(remembered.current[next] ?? '')
+  }
+
   return (
     <fieldset className="contact-fieldset">
       <legend>Contact info</legend>
@@ -25,10 +44,7 @@ function ContactFields({ idPrefix, method, value, onMethodChange, onValueChange 
             role="radio"
             aria-checked={method === option}
             className={`segment${method === option ? ' is-active' : ''}`}
-            onClick={() => {
-              onMethodChange(option)
-              onValueChange('')
-            }}
+            onClick={() => switchTo(option)}
           >
             {option === 'phone' ? 'Phone number' : 'Instagram'}
           </button>
@@ -47,7 +63,6 @@ function ContactFields({ idPrefix, method, value, onMethodChange, onValueChange 
           type="text"
           value={value}
           autoComplete="off"
-          placeholder="@mustangsally"
           onChange={(event) => onValueChange(event.target.value)}
         />
       )}

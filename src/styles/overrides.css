@@ -1,0 +1,485 @@
+/* campus.css hides .site-header nav below 800px. That was fine for a
+   multi-page site (the browser's own navigation still worked), but this is a
+   single-page app — hiding the nav strands you on whatever view you're on.
+   Below 800px the links become a compact row under the header instead. */
+
+@media (max-width: 800px) {
+  .site-header {
+    height: auto;
+    padding: 10px 18px 0;
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .header-actions {
+    order: 2;
+  }
+
+  .site-header nav {
+    display: flex;
+    order: 3;
+    width: 100%;
+    gap: 20px;
+    font-size: 13px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .site-header nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .site-header nav a {
+    padding: 8px 0 10px;
+    white-space: nowrap;
+  }
+}
+
+/* His header is a 3-child flex row with space-between (brand | nav | button).
+   Adding a sign-out control made it four, which redistributed everything when
+   the window was stretched. Grouping the right-hand controls restores three. */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Sign-out sits quietly beside the primary action. */
+.site-header .text-button {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 6px 0;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+.site-header .text-button:hover {
+  color: var(--green);
+}
+
+/* The browser's default focus ring is a heavy orange box over these links.
+   Keep focus clearly visible, but in the palette. */
+.site-header nav a:focus-visible,
+.site-header .brand:focus-visible,
+.site-header button:focus-visible,
+.reserve:focus-visible,
+.primary:focus-visible,
+.secondary:focus-visible,
+.header-button:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Clicking a nav link should not leave it ringed afterwards. */
+.site-header nav a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ---------- header: notifications ---------- */
+
+.bell-wrap {
+  position: relative;
+}
+
+.bell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.bell:hover {
+  opacity: 1;
+}
+
+.bell svg {
+  width: 19px;
+  height: 19px;
+  display: block;
+}
+
+/* Presence, not a count — a small dot reads faster than a number. */
+.bell-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e5484d;
+  border: 2px solid var(--cream);
+  box-sizing: content-box;
+}
+
+.bell-menu {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  z-index: 40;
+  width: min(300px, 78vw);
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 14px 36px rgba(33, 62, 51, 0.14);
+}
+
+.bell-item {
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.bell-item:hover {
+  background: var(--mint);
+}
+
+.bell-item small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.bell-empty {
+  margin: 0;
+  padding: 14px 10px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ---------- profile additions ---------- */
+
+.profile-head {
+  position: relative;
+}
+
+.profile-signout {
+  margin-left: auto;
+  align-self: flex-start;
+}
+
+.cancel-link {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--orange, #ff705b);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cancel-link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.cancel-link:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.trip-riders {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ---------- star picker ---------- */
+/* Every star rendered filled, so the control always looked like 5 stars.
+   Now they are outlined until hovered, and fill up to the cursor. */
+
+.star-picker button {
+  color: #d6ded8;
+  transition: color 0.12s ease, transform 0.12s ease;
+}
+
+.star-picker button.is-lit {
+  color: #f0b429;
+}
+
+.star-picker button:disabled {
+  cursor: default;
+}
+
+/* ---------- seat requests & ride lifecycle ---------- */
+
+/* A pending rider is dimmed and outlined; a confirmed one is solid, so the
+   difference between "asked" and "riding" is visible at a glance. */
+.passenger.is-pending {
+  background: transparent;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+}
+
+.row-actions {
+  display: grid;
+  gap: 4px;
+  justify-items: stretch;
+}
+
+.pending-note {
+  color: var(--orange, #ff705b);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.reserve.is-secondary {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.reserve.is-secondary:hover:not(:disabled) {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.seat-request {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fbfdfc;
+  font-size: 12px;
+}
+
+.seat-request-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mini {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.mini:hover:not(:disabled) {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.mini.accept {
+  background: var(--green);
+  border-color: var(--green);
+  color: #ffffff;
+}
+
+.mini.accept:hover:not(:disabled) {
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+.mini:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.trip-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.trip-actions .cancel-link {
+  margin-top: 0;
+}
+
+.ride-state {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--lime, #c6e546);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+/* ---------- board banner ---------- */
+
+.board-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  /* Matches .requests exactly so the banner and the table share edges. */
+  max-width: 1140px;
+  margin: 24px auto 26px;
+  padding: 22px 26px;
+  border-radius: 16px;
+  background: var(--mint);
+}
+
+.board-banner h1 {
+  margin: 2px 0 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: -0.8px;
+  color: var(--ink);
+}
+
+.board-banner-blurb {
+  margin: 6px 0 0;
+  max-width: 46ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4e6960;
+}
+
+.board-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.board-banner-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--green);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.board-banner-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 800px) {
+  .board-banner {
+    margin: 16px 18px 20px;
+    padding: 18px 20px;
+  }
+
+  .board-banner h1 {
+    font-size: 23px;
+  }
+
+  .board-banner-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* ---------- notification menu ---------- */
+
+.bell-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid var(--hairline, #ebeee9);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.bell-clear {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--green);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.bell-clear:hover {
+  text-decoration: underline;
+}
+
+.bell-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bell-dismiss {
+  flex-shrink: 0;
+  border: 0;
+  background: none;
+  padding: 0 2px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bell-dismiss:hover {
+  color: var(--ink);
+}
+
+/* ---------- stop layout shifting ---------- */
+
+/* Request seat / Withdraw / Asking… are different widths, so the column
+   resized on every click and nudged the table around. */
+.reserve {
+  min-width: 116px;
+  text-align: center;
+}
+
+.row-actions .reserve {
+  min-width: 116px;
+}
+
+/* Save sits under the left edge of the fields it belongs to. */
+.details-form .form-actions {
+  justify-content: flex-start;
+}
+
+/* The action column was left-aligned inside a wide cell, leaving the buttons
+   floating well short of the table's right edge. */
+.table-shell th:last-child,
+.table-shell td:last-child {
+  text-align: right;
+}
+
+.row-actions {
+  justify-items: end;
+}

@@ -1,6 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Modal, formatWhen, ratingLabel } from '../components/Shell'
-import { fetchOfferedRides, offerRide, reserveSeat, type CampusProfile, type OfferedRide } from '../data/api'
+import PageBanner from '../components/PageBanner'
+import {
+  fetchOfferedRides,
+  offerRide,
+  requestSeat,
+  setRideStatus,
+  cancelSeat,
+  type CampusProfile,
+  type OfferedRide,
+} from '../data/api'
+
+const REQUEST_MESSAGE: Record<string, string> = {
+  requested: 'Request sent — the driver will confirm.',
+  already_requested: 'You already asked for a seat on this ride.',
+  full: 'That ride is full.',
+  own_ride: 'This is your own ride.',
+  not_open: 'That ride is no longer taking requests.',
+  missing: 'That ride is gone.',
+}
 
 function RidesPage({
   profile,
@@ -60,16 +78,22 @@ function RidesPage({
     )
   }, [rides, search])
 
-  async function handleReserve(ride: OfferedRide) {
-    setBusyId(ride.id)
+  async function act(key: string, action: () => Promise<unknown>, done?: string) {
+    setBusyId(key)
     setLoadError('')
 
     try {
-      const claimed = await reserveSeat(ride.id)
-      onToast(claimed ? 'Your seat is reserved!' : 'Sorry, that ride just filled up.')
+      const result = await action()
+
+      if (typeof result === 'string') {
+        onToast(REQUEST_MESSAGE[result] ?? result)
+      } else if (done) {
+        onToast(done)
+      }
+
       await load()
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Could not reserve that seat.')
+      setLoadError(error instanceof Error ? error.message : 'That did not work.')
     } finally {
       setBusyId(null)
     }
@@ -104,21 +128,19 @@ function RidesPage({
 
   return (
     <main>
-      <section className="page-hero">
-        <p className="eyebrow">FIND YOUR WAY THERE</p>
-        <h1>Rides offered by students</h1>
-        <p>Browse upcoming trips, reserve a seat, or share your own empty seats.</p>
-        <button className="primary page-hero-button" type="button" onClick={onOpenModal}>
-          Offer a ride <span>→</span>
-        </button>
-      </section>
+      <PageBanner
+        eyebrow="FIND A RIDE"
+        title="Rides leaving campus"
+        blurb="Ask a driver for a seat. They confirm you before it's yours."
+        primary={{ label: 'Offer a ride', onClick: onOpenModal }}
+        secondary={{ label: "Can't find one? Post a request →", onClick: onGoToRequests }}
+      />
 
       <section className="requests offered-page">
         <div className="section-heading">
           <div>
             <p className="eyebrow">UPCOMING TRIPS</p>
             <h2>Available rides</h2>
-            <p>Seats shared by drivers in your campus community.</p>
           </div>
           <div className="toolbar">
             <label className="search">
@@ -155,16 +177,24 @@ function RidesPage({
                 const when = formatWhen(ride.departure_at)
                 const full = ride.seats_available < 1
                 const isMine = profile !== null && ride.driver_profile_id === profile.id
-                const alreadyOn =
-                  profile !== null && ride.passengers.includes(profile.display_name)
 
                 return (
                   <tr key={ride.id}>
                     <td>
                       <span className="destination">
                         {ride.origin} <span className="route-arrow">→</span> {ride.destination}
+                        {ride.status === 'in_progress' ? (
+                          <span className="ride-state">under way</span>
+                        ) : null}
                       </span>
-                      <span className="driver-rating">
+                      <span
+                        className="driver-rating"
+                        title={
+                          ride.driver && ride.driver.rating_count
+                            ? `${ride.driver.display_name}: ${Number(ride.driver.rating_average).toFixed(1)} out of 5 from ${ride.driver.rating_count} rating${ride.driver.rating_count === 1 ? '' : 's'}`
+                            : 'No ratings yet'
+                        }
+                      >
                         {isMine ? 'You' : (ride.driver?.display_name ?? 'Campus driver')} ·{' '}
                         {ratingLabel(ride.driver)}
                       </span>
@@ -176,18 +206,23 @@ function RidesPage({
                     <td>
                       <strong className={full ? 'sold-out' : undefined}>
                         {full
-                          ? 'Sold out'
+                          ? 'Full'
                           : `${ride.seats_available} seat${ride.seats_available === 1 ? '' : 's'} open`}
                       </strong>
                       <div className="passengers">
-                        {ride.passengers.length > 0 ? (
-                          ride.passengers.map((name, index) => (
-                            <span className="passenger" key={`${name}-${index}`}>
-                              {name}
+                        {ride.requests.length > 0 ? (
+                          ride.requests.map((seat) => (
+                            <span
+                              className={`passenger${seat.status === 'pending' ? ' is-pending' : ''}`}
+                              key={seat.id}
+                              title={seat.status === 'pending' ? 'Awaiting driver' : 'Confirmed'}
+                            >
+                              {seat.rider_name}
+                              {seat.status === 'pending' ? ' ·' : ''}
                             </span>
                           ))
                         ) : (
-                          <span className="no-passengers">No seats reserved yet</span>
+                          <span className="no-passengers">No riders yet</span>
                         )}
                       </div>
                     </td>
@@ -196,22 +231,58 @@ function RidesPage({
                       <small className="place-note">per seat</small>
                     </td>
                     <td>
-                      <button
-                        className="reserve"
-                        type="button"
-                        disabled={full || isMine || alreadyOn || busyId === ride.id}
-                        onClick={() => handleReserve(ride)}
-                      >
-                        {isMine
-                          ? 'Your ride'
-                          : alreadyOn
-                            ? 'Reserved'
+                      {isMine ? (
+                        <div className="row-actions">
+                          {ride.status === 'scheduled' ? (
+                            <button
+                              className="reserve"
+                              type="button"
+                              disabled={busyId === ride.id}
+                              onClick={() => act(ride.id, () => setRideStatus(ride.id, 'in_progress'), 'Ride started.')}
+                            >
+                              Start ride
+                            </button>
+                          ) : (
+                            <button
+                              className="reserve"
+                              type="button"
+                              disabled={busyId === ride.id}
+                              onClick={() => act(ride.id, () => setRideStatus(ride.id, 'completed'), 'Ride finished.')}
+                            >
+                              Finish ride
+                            </button>
+                          )}
+                          {ride.requests.some((r) => r.status === 'pending') ? (
+                            <span className="pending-note">
+                              {ride.requests.filter((r) => r.status === 'pending').length} awaiting you
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : ride.mySeat ? (
+                        <button
+                          className="reserve is-secondary"
+                          type="button"
+                          disabled={busyId === ride.id}
+                          onClick={() => act(ride.id, () => cancelSeat(ride.id), 'Request withdrawn.')}
+                        >
+                          {ride.mySeat.status === 'pending' ? 'Withdraw' : 'Cancel seat'}
+                        </button>
+                      ) : (
+                        <button
+                          className="reserve"
+                          type="button"
+                          disabled={full || busyId === ride.id || ride.status !== 'scheduled'}
+                          onClick={() => act(ride.id, () => requestSeat(ride.id))}
+                        >
+                          {ride.status !== 'scheduled'
+                            ? 'Under way'
                             : full
                               ? 'Full'
                               : busyId === ride.id
-                                ? 'Reserving…'
-                                : 'Reserve seat'}
-                      </button>
+                                ? 'Asking…'
+                                : 'Request seat'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )
@@ -244,15 +315,6 @@ function RidesPage({
           </div>
         </div>
 
-        <div className="request-cta">
-          <div>
-            <p className="eyebrow">CAN'T FIND YOUR TRIP?</p>
-            <h2>Let drivers know where you need to go.</h2>
-          </div>
-          <button className="primary cta-link" type="button" onClick={onGoToRequests}>
-            View ride requests <span>→</span>
-          </button>
-        </div>
       </section>
 
       <Modal

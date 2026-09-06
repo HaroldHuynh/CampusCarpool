@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Modal, formatWhen } from '../components/Shell'
+import PageBanner from '../components/PageBanner'
 import {
   closeRideRequest,
   fetchRideRequests,
@@ -23,12 +24,14 @@ function RequestsPage({
   onCloseModal,
   onOpenModal,
   onToast,
+  onGoToRides,
 }: {
   profile: CampusProfile | null
   modalOpen: boolean
   onCloseModal: () => void
   onOpenModal: () => void
   onToast: (text: string) => void
+  onGoToRides: () => void
 }) {
   const [requests, setRequests] = useState<RideRequest[]>([])
   const [search, setSearch] = useState('')
@@ -117,45 +120,19 @@ function RequestsPage({
 
   return (
     <main>
-      <section className="hero">
-        <div className="hero-copy">
-          <p className="eyebrow">THE CAMPUS RIDE BOARD</p>
-          <h1>
-            Going somewhere?
-            <br />
-            <em>Go together.</em>
-          </h1>
-          <p>
-            Post where you need to go, when you’re leaving, and what you can chip in. A driver
-            headed your way can take it from there.
-          </p>
-          <div className="hero-actions">
-            <button className="primary hero-button" type="button" onClick={onOpenModal}>
-              Post a ride request <span>→</span>
-            </button>
-          </div>
-        </div>
-        <div className="hero-art" aria-hidden="true">
-          <div className="sun" />
-          <div className="cloud cloud-one" />
-          <div className="cloud cloud-two" />
-          <div className="hill hill-back" />
-          <div className="hill hill-front" />
-          <div className="road" />
-          <div className="car">
-            <span className="window" />
-            <span className="wheel wheel-one" />
-            <span className="wheel wheel-two" />
-          </div>
-        </div>
-      </section>
+      <PageBanner
+        eyebrow="RIDE REQUESTS"
+        title="Students looking for a ride"
+        blurb="People who need to get somewhere. If you're driving that way, reach out."
+        primary={{ label: 'Post a request', onClick: onOpenModal }}
+        secondary={{ label: 'Browse rides offered →', onClick: onGoToRides }}
+      />
 
       <section className="requests" id="requests" aria-labelledby="requests-title">
         <div className="section-heading">
           <div>
             <p className="eyebrow">OPEN REQUESTS</p>
-            <h2 id="requests-title">Students looking for a ride</h2>
-            <p>See who’s headed your way and help make the trip happen.</p>
+            <h2 id="requests-title">Who needs a ride</h2>
           </div>
           <div className="toolbar">
             <label className="search">
@@ -198,9 +175,19 @@ function RequestsPage({
                     <td>
                       <div className="rider">
                         <span className={`avatar color-${index % 4}`}>{initials(row.rider_name)}</span>
-                        <span>
+                        <span
+                          title={
+                            row.requester && row.requester.rating_count
+                              ? `${row.rider_name}: ${Number(row.requester.rating_average).toFixed(1)} out of 5 from ${row.requester.rating_count} rating${row.requester.rating_count === 1 ? '' : 's'}`
+                              : 'No ratings yet'
+                          }
+                        >
                           {row.rider_name}
-                          <small className="place-note">{row.contact_info}</small>
+                          <small className="place-note">
+                            {row.requester && row.requester.rating_count
+                              ? `★ ${Number(row.requester.rating_average).toFixed(1)} (${row.requester.rating_count})`
+                              : '☆ New'}
+                          </small>
                         </span>
                       </div>
                     </td>
