@@ -439,6 +439,7 @@
 }
 .profile-trigger:not(:disabled):hover { color: var(--green); text-decoration: underline; }
 .profile-trigger:disabled { cursor: default; }
+.profile-trigger .contact-person { cursor: pointer; }
 .passenger .profile-trigger { display: inline-block; }
 .profile-trigger.driver-rating { color: #8d6518; font-size: 9px; font-weight: 700; }
 .profile-trigger .place-note { text-align: left; }
