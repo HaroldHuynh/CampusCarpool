@@ -72,6 +72,8 @@ function Preview() {
           onCloseModal={() => setModalOpen(false)}
           onToast={showToast}
           onGoToRides={() => setBoard('rides')}
+          onReviewOffer={() => {}}
+          onOpenMyRide={() => {}}
           onMessageProfile={() => {}}
         />
       )}

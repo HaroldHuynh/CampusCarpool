@@ -186,6 +186,28 @@ dialog.map-dialog {
   color: var(--muted);
 }
 
+.map-profile-link,
+.map-jump-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--green-dark);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.map-profile-link:hover,
+.map-jump-link:hover {
+  color: var(--green);
+  text-decoration: underline;
+}
+
+.map-jump-link {
+  margin-top: 9px;
+  font-size: 12px;
+}
+
 .pin-note {
   margin: 12px 0 0;
   padding: 9px 11px;
@@ -227,9 +249,21 @@ dialog.map-dialog {
   align-items: center;
 }
 
+.pin-actions-stacked {
+  align-items: stretch;
+  flex-direction: column;
+  margin-top: 14px;
+}
+
 .pin-actions .primary {
   width: auto;
   margin-top: 0;
+}
+
+.pin-actions-stacked .primary,
+.pin-actions-stacked .map-secondary {
+  width: 100%;
+  justify-content: center;
 }
 
 .pin-offer .pin-actions {

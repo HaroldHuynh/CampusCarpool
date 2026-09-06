@@ -79,6 +79,9 @@ export default function RideMapDialog({
   onClose,
   onRequestSeat,
   onCloseRequest,
+  onOpenProfile,
+  onOpenMyRide,
+  onReviewOffer,
 }: {
   open: boolean
   /** Which board the map opens on . the page you came from. */
@@ -87,6 +90,9 @@ export default function RideMapDialog({
   onClose: () => void
   onRequestSeat: (rideId: string) => Promise<void>
   onCloseRequest: (requestId: number) => Promise<void>
+  onOpenProfile: (profileId: string, contactOverride?: string | null) => void
+  onOpenMyRide: (rideId: string) => void
+  onReviewOffer: (requestId: number) => void
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const [filter, setFilter] = useState<MapBoard>(board)
@@ -179,7 +185,7 @@ export default function RideMapDialog({
       items.map((item) => ({
         id: idOf(item),
         at: item.to,
-        kind: item.kind === 'ride' ? 'ride' : 'destination',
+        kind: item.kind === 'ride' ? 'ride' : 'request',
         label:
           item.kind === 'ride'
             ? `${item.ride.origin} → ${item.ride.destination}`
@@ -210,6 +216,11 @@ export default function RideMapDialog({
     setOfferRequestId(null)
     setActionNote('')
   }, [])
+
+  function leaveMap(run: () => void) {
+    onClose()
+    run()
+  }
 
   async function act(run: () => Promise<void>, note: string) {
     setBusy(true)
@@ -332,7 +343,20 @@ export default function RideMapDialog({
                 {selected.ride.destination}
               </p>
               <p className="pin-meta">
-                {selected.ride.driver?.display_name ?? 'Campus driver'} ·{' '}
+                {selected.ride.driver_profile_id && selected.ride.driver_profile_id !== profile?.id ? (
+                  <button
+                    type="button"
+                    className="map-profile-link"
+                    onClick={() => leaveMap(() => onOpenProfile(selected.ride.driver_profile_id!))}
+                  >
+                    {selected.ride.driver?.display_name ?? 'Campus driver'}
+                  </button>
+                ) : (
+                  selected.ride.driver_profile_id === profile?.id
+                    ? 'You'
+                    : selected.ride.driver?.display_name ?? 'Campus driver'
+                )}{' '}
+                ·{' '}
                 {formatWhen(selected.ride.departure_at)}
               </p>
               <p className="pin-meta">
@@ -343,14 +367,35 @@ export default function RideMapDialog({
 
               {selected.ride.driver_profile_id === profile?.id ? (
                 <>
-                  <p className="pin-note">This is your ride.</p>
+                  <p className="pin-note">
+                    <button
+                      type="button"
+                      className="map-profile-link"
+                      onClick={() => leaveMap(() => onOpenMyRide(selected.ride.id))}
+                    >
+                      Your ride
+                    </button>
+                  </p>
                   {selected.ride.requests
                     .filter(
                       (seat) => seat.status === 'pending' && seat.initiated_by === 'rider',
                     )
                     .map((seat) => (
                       <div className="pin-request" key={seat.id}>
-                        <span>{seat.rider_name} asked to join</span>
+                        <span>
+                          {seat.rider_profile_id ? (
+                            <button
+                              type="button"
+                              className="map-profile-link"
+                              onClick={() => leaveMap(() => onOpenProfile(seat.rider_profile_id!))}
+                            >
+                              {seat.rider_name}
+                            </button>
+                          ) : (
+                            seat.rider_name
+                          )}{' '}
+                          asked to join
+                        </span>
                         <span className="pin-actions">
                           <button
                             type="button"
@@ -376,7 +421,20 @@ export default function RideMapDialog({
                 selected.ride.mySeat.initiated_by === 'driver' &&
                 selected.ride.matchedRequestId ? (
                 <div className="pin-offer">
-                  <p className="pin-note">The driver offered you this ride.</p>
+                  <p className="pin-note">
+                    Offered by{' '}
+                    {selected.ride.driver_profile_id ? (
+                      <button
+                        type="button"
+                        className="map-profile-link"
+                        onClick={() => leaveMap(() => onOpenProfile(selected.ride.driver_profile_id!))}
+                      >
+                        {selected.ride.driver?.display_name ?? 'your driver'}
+                      </button>
+                    ) : (
+                      selected.ride.driver?.display_name ?? 'your driver'
+                    )}
+                  </p>
                   <div className="pin-actions">
                     <button
                       className="primary"
@@ -399,11 +457,34 @@ export default function RideMapDialog({
                       Decline
                     </button>
                   </div>
+                  <button
+                    type="button"
+                    className="map-jump-link"
+                    onClick={() => leaveMap(() => onReviewOffer(selected.ride.matchedRequestId!))}
+                  >
+                    Open in My profile
+                  </button>
                 </div>
               ) : selected.ride.mySeat?.status === 'pending' ? (
-                <p className="pin-note">Your seat request is waiting for the driver.</p>
+                <p className="pin-note">
+                  <button
+                    type="button"
+                    className="map-profile-link"
+                    onClick={() => leaveMap(() => onOpenMyRide(selected.ride.id))}
+                  >
+                    You asked to join
+                  </button>
+                </p>
               ) : selected.ride.mySeat?.status === 'accepted' ? (
-                <p className="pin-note">Your seat is confirmed.</p>
+                <p className="pin-note">
+                  <button
+                    type="button"
+                    className="map-profile-link"
+                    onClick={() => leaveMap(() => onOpenMyRide(selected.ride.id))}
+                  >
+                    Your seat is confirmed
+                  </button>
+                </p>
               ) : selected.ride.seats_available < 1 ? (
                 <p className="pin-note">No seats left on this one.</p>
               ) : (
@@ -428,19 +509,45 @@ export default function RideMapDialog({
                 {selected.request.destination}
               </p>
               <p className="pin-meta">
-                {selected.request.rider_name} · {formatWhen(selected.request.departure_at)}
+                {selected.request.requester_profile_id &&
+                selected.request.requester_profile_id !== profile?.id ? (
+                  <button
+                    type="button"
+                    className="map-profile-link"
+                    onClick={() =>
+                      leaveMap(() =>
+                        onOpenProfile(selected.request.requester_profile_id!, selected.request.contact_info),
+                      )
+                    }
+                  >
+                    {selected.request.rider_name}
+                  </button>
+                ) : (
+                  selected.request.rider_name
+                )}{' '}
+                · {formatWhen(selected.request.departure_at)}
               </p>
               {selected.request.requester_profile_id === profile?.id ? (
-                <button
-                  className="primary"
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void act(() => onCloseRequest(selected.request.id), 'Request closed.')
-                  }
-                >
-                  Close request
-                </button>
+                <div className="pin-actions pin-actions-stacked">
+                  <button
+                    className="primary"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => leaveMap(() => onReviewOffer(selected.request.id))}
+                  >
+                    Open in My profile
+                  </button>
+                  <button
+                    className="map-secondary"
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      void act(() => onCloseRequest(selected.request.id), 'Request closed.')
+                    }
+                  >
+                    Close request
+                  </button>
+                </div>
               ) : offerRequestId === selected.request.id ? (
                 <form
                   className="pin-offer-form"

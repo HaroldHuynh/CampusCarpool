@@ -707,6 +707,14 @@ function App() {
             onCloseModal={() => setModalOpen(false)}
             onToast={showToast}
             onGoToRides={() => setView('rides')}
+            onReviewOffer={(requestId) => {
+              setFocusRequestId(requestId)
+              setView('profile')
+            }}
+            onOpenMyRide={(rideId) => {
+              setFocusRideId(rideId)
+              setView('profile')
+            }}
             onMessageProfile={openMessages}
           />
         ) : view === 'rides' ? (

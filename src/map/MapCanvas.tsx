@@ -12,15 +12,16 @@ export type MapRoute = {
   dimmed?: boolean
 }
 
-export type MapMarkerKind = 'origin' | 'destination' | 'meetup' | 'ride'
+export type MapMarkerKind = 'origin' | 'destination' | 'meetup' | 'ride' | 'request'
 
 export type MapMarker = { id: string; at: LatLng; kind: MapMarkerKind; label?: string }
 
-const MARKER_STYLE: Record<MapMarkerKind, { color: string; radius: number }> = {
-  origin: { color: '#16372f', radius: 7 },
-  destination: { color: '#ff705b', radius: 7 },
-  meetup: { color: '#c7e34b', radius: 9 },
-  ride: { color: '#16785d', radius: 6 },
+const MARKER_STYLE: Record<MapMarkerKind, { color: string; stroke: string; radius: number }> = {
+  origin: { color: '#16372f', stroke: '#16372f', radius: 7 },
+  destination: { color: '#ff705b', stroke: '#16372f', radius: 7 },
+  meetup: { color: '#c7e34b', stroke: '#16372f', radius: 9 },
+  ride: { color: '#16785d', stroke: '#16372f', radius: 6 },
+  request: { color: '#ff705b', stroke: '#8d6518', radius: 9 },
 }
 
 export default function MapCanvas({
@@ -101,7 +102,7 @@ export default function MapCanvas({
       const style = MARKER_STYLE[marker.kind]
       const dot = L.circleMarker([marker.at.lat, marker.at.lng], {
         radius: style.radius,
-        color: '#16372f',
+        color: style.stroke,
         weight: 2,
         fillColor: style.color,
         fillOpacity: 1,

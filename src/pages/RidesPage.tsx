@@ -493,6 +493,12 @@ function RidesPage({
           await closeRideRequest(requestId, profile.id)
           onToast('Request closed.')
         }}
+        onOpenProfile={(nextProfileId) => {
+          setProfileId(nextProfileId)
+          setProfileOpen(true)
+        }}
+        onOpenMyRide={onOpenMyRide}
+        onReviewOffer={onReviewOffer}
       />
       <ProfileCardDialog
         profileId={profileId}
