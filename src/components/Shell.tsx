@@ -169,7 +169,6 @@ export function SiteFooter() {
       <a className="brand" href="#">
         <span className="brand-mark">↗</span> campus<span>carpool</span>
       </a>
-      <span>© 2026 CampusCarpool</span>
     </footer>
   )
 }

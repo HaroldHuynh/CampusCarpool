@@ -384,7 +384,7 @@ export type HistoryRide = {
 export async function fetchHistory(profileId: string) {
   const supabase = getSupabaseClient()
 
-  const [offered, reservations, given, requests, matchedRequests] = await Promise.all([
+  const [offered, reservations, given, requests] = await Promise.all([
     supabase
       .from('rides')
       .select('*, ride_reservations(id, rider_name, rider_profile_id, status)')
@@ -405,11 +405,6 @@ export async function fetchHistory(profileId: string) {
       .eq('requester_profile_id', profileId)
       .eq('is_closed', false)
       .order('departure_at'),
-    supabase
-      .from('ride_requests')
-      .select('id, origin, destination, matched_ride_id')
-      .eq('requester_profile_id', profileId)
-      .not('matched_ride_id', 'is', null),
   ])
 
   if (offered.error) {
@@ -420,9 +415,13 @@ export async function fetchHistory(profileId: string) {
     throw reservations.error
   }
 
-  if (matchedRequests.error) {
-    throw matchedRequests.error
-  }
+  // This enhancement is intentionally non-blocking: if a client reaches an
+  // older database during a deployment, the rest of the profile still loads.
+  const { data: matchedData } = await supabase
+    .from('ride_requests')
+    .select('id, origin, destination, matched_ride_id')
+    .eq('requester_profile_id', profileId)
+    .not('matched_ride_id', 'is', null)
 
   // Carry my own seat status onto the ride so the caller can tell "waiting on
   // the driver" from "confirmed".
@@ -445,7 +444,7 @@ export async function fetchHistory(profileId: string) {
     reserved,
     rated,
     requests: (requests.data ?? []) as RideRequest[],
-    matchedOffers: (matchedRequests.data ?? []) as Pick<
+    matchedOffers: (matchedData ?? []) as Pick<
       RideRequest,
       'id' | 'origin' | 'destination' | 'matched_ride_id'
     >[],
