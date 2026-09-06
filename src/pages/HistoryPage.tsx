@@ -4,7 +4,7 @@ import ProfileCardDialog from '../components/ProfileCardDialog'
 import { useLiveData } from '../lib/useLiveData'
 import { useScrollToTarget } from '../lib/useScrollToTarget'
 import { formatPrice } from '../components/Shell'
-import { getAccessRequest, saveProfile, type ContactMethod } from '../auth/auth'
+import { getAccessRequest, saveProfile, formatPhoneInput, type ContactMethod } from '../auth/auth'
 import {
   cancelRide,
   cancelSeat,
@@ -229,8 +229,13 @@ function HistoryPage({
 
         setFirstName(row.first_name ?? '')
         setLastName(row.last_name ?? '')
-        setContactMethod(row.contact_method ?? 'phone')
-        setContactValue(row.contact_value ?? '')
+        const method = row.contact_method ?? 'phone'
+        setContactMethod(method)
+        setContactValue(
+          method === 'phone' && row.contact_value
+            ? formatPhoneInput(row.contact_value)
+            : row.contact_value ?? '',
+        )
       })
       .catch(() => {})
   }, [])
@@ -338,11 +343,21 @@ function HistoryPage({
           <div className="form-row two-col">
             <label>
               First name
-              <input value={firstName} onChange={(event) => setFirstName(event.target.value)} />
+              <input
+                name="given-name"
+                autoComplete="given-name"
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
+              />
             </label>
             <label>
               Last name
-              <input value={lastName} onChange={(event) => setLastName(event.target.value)} />
+              <input
+                name="family-name"
+                autoComplete="family-name"
+                value={lastName}
+                onChange={(event) => setLastName(event.target.value)}
+              />
             </label>
           </div>
           <ContactFields

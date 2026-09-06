@@ -54,6 +54,12 @@ export function formatPhoneInput(value: string) {
   const digits = value.replace(/[^\d]/g, '')
 
   if (value.trim().startsWith('+')) {
+    // A complete +1 number is NANP, so group it like a domestic one rather
+    // than leaving "+18055550134" ungrouped.
+    if (digits.length === 11 && digits.startsWith('1')) {
+      return formatPhoneInput(digits.slice(1))
+    }
+
     return `+${digits}`
   }
 
