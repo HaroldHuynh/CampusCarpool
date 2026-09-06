@@ -355,20 +355,39 @@ function HistoryPage({
           </div>
         </div>
         <form className="details-form" onSubmit={handleSaveDetails}>
-          <div className="form-row">
-            <label htmlFor="historyFullName">
-              Full name
+          <div className="form-row two-col">
+            <label htmlFor="historyFirstName">
+              First name
               <input
-                id="historyFullName"
+                id="historyFirstName"
                 name="name"
                 type="text"
                 autoComplete="name"
-                value={[firstName, lastName].filter(Boolean).join(' ')}
+                value={firstName}
                 onChange={(event) => {
-                  const [first, last] = splitFullName(event.target.value)
-                  setFirstName(first)
-                  setLastName(last)
+                  // Chrome's address autofill only has a single combined name,
+                  // so a value with a space is a full name to split across
+                  // both fields; anything else is a plain first-name edit.
+                  const raw = event.target.value
+                  if (/\s/.test(raw.trim())) {
+                    const [first, last] = splitFullName(raw)
+                    setFirstName(first)
+                    setLastName(last)
+                  } else {
+                    setFirstName(raw)
+                  }
                 }}
+              />
+            </label>
+            <label htmlFor="historyLastName">
+              Last name
+              <input
+                id="historyLastName"
+                name="family-name"
+                type="text"
+                autoComplete="family-name"
+                value={lastName}
+                onChange={(event) => setLastName(event.target.value)}
               />
             </label>
           </div>
