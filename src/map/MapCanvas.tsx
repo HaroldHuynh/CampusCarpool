@@ -47,7 +47,9 @@ export default function MapCanvas({
       attributionControl: true,
     }).setView([35.3, -120.66], 11)
 
-    const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // OpenStreetMap deprecated the {s} subdomain pattern; this is the URL they
+    // currently document, and it fills tiles far more reliably.
+    const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       attribution: '© OpenStreetMap contributors',
     })

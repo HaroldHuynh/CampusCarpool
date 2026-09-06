@@ -6,18 +6,74 @@ export type ResolvedLocation = { lat: number; lng: number; label: string }
 export type ResolveDeps = {
   search?: typeof searchPlaces
   storage?: Storage | null
+  /** Keeps ambiguous names near a known point — see searchPlaces. */
+  bias?: { lat: number; lng: number } | null
 }
 
-const CACHE_PREFIX = 'cc.geo.'
+/** Shortest string allowed to match on a word prefix rather than exactly. */
+const MIN_PREFIX_LENGTH = 4
+
+/**
+ * Versioned: a cached answer outlives the bug that produced it. Bumping this
+ * retires every stored coordinate — "SF" was cached as Sfax, Tunisia before
+ * alias matching landed, and no amount of fixing the lookup evicts that.
+ */
+const CACHE_PREFIX = 'cc.geo.v2.'
 
 /**
  * Seed places cover several campuses on purpose: CampusCarpool is not tied to
  * one school, and these make the common demo paths work with no network.
  */
 export const SEED_PLACES: Place[] = [
-  { id: 'calpoly', label: 'Cal Poly San Luis Obispo', lat: 35.305, lng: -120.6625, category: 'campus' },
+  {
+    id: 'calpoly',
+    label: 'Cal Poly San Luis Obispo',
+    lat: 35.305,
+    lng: -120.6625,
+    category: 'campus',
+    aliases: ['cal poly', 'calpoly'],
+  },
   { id: 'dexter', label: 'Dexter Lawn, San Luis Obispo', lat: 35.3009, lng: -120.6625, category: 'campus' },
-  { id: 'slo-transit', label: 'SLO Transit Center', lat: 35.2793, lng: -120.664, category: 'transit' },
+  {
+    id: 'slo-transit',
+    label: 'SLO Transit Center',
+    lat: 35.2793,
+    lng: -120.664,
+    category: 'transit',
+    aliases: ['slo', 'san luis obispo'],
+  },
+  {
+    id: 'sf',
+    label: 'San Francisco',
+    lat: 37.7749,
+    lng: -122.4194,
+    category: 'public',
+    aliases: ['sf', 'san fran', 'the city'],
+  },
+  {
+    id: 'la',
+    label: 'Los Angeles',
+    lat: 34.0522,
+    lng: -118.2437,
+    category: 'public',
+    aliases: ['la', 'l.a.'],
+  },
+  {
+    id: 'sb',
+    label: 'Santa Barbara',
+    lat: 34.4208,
+    lng: -119.6982,
+    category: 'public',
+    aliases: ['sb', 'santa barbara'],
+  },
+  {
+    id: 'sj',
+    label: 'San Jose',
+    lat: 37.3382,
+    lng: -121.8863,
+    category: 'public',
+    aliases: ['sj', 'san jose'],
+  },
   { id: 'slo-amtrak', label: 'San Luis Obispo Amtrak', lat: 35.2751, lng: -120.6552, category: 'transit' },
   { id: 'sbp', label: 'San Luis Obispo airport', lat: 35.2368, lng: -120.6424, category: 'transit' },
   { id: 'pismo', label: 'Pismo Beach', lat: 35.1428, lng: -120.6413, category: 'public' },
@@ -72,6 +128,29 @@ export function clearLocationCache(): void {
 }
 
 /**
+ * Exact label, then exact alias, then a whole-word prefix. Plain `includes`
+ * was far too eager: "LA" matched "Dexter Lawn" on the "la" inside "Lawn",
+ * so a ride to Los Angeles was drawn two streets from campus.
+ */
+function findSeed(key: string): Place | undefined {
+  const exact = SEED_PLACES.find((place) => normalize(place.label) === key)
+  if (exact) return exact
+
+  const aliased = SEED_PLACES.find((place) =>
+    (place.aliases ?? []).some((alias) => normalize(alias) === key),
+  )
+  if (aliased) return aliased
+
+  if (key.length < MIN_PREFIX_LENGTH) return undefined
+
+  return SEED_PLACES.find((place) =>
+    normalize(place.label)
+      .split(/[^a-z0-9]+/)
+      .some((word) => word.startsWith(key)),
+  )
+}
+
+/**
  * Text to coordinates, cheapest source first: session memory, then persisted
  * cache, then the bundled seed table, then the geocoder. Never throws — an
  * unresolvable ride is simply left off the map.
@@ -92,9 +171,7 @@ export async function resolveLocation(
     return cached
   }
 
-  const seed =
-    SEED_PLACES.find((place) => normalize(place.label) === key) ??
-    SEED_PLACES.find((place) => normalize(place.label).includes(key))
+  const seed = findSeed(key)
   if (seed) {
     const resolved = { lat: seed.lat, lng: seed.lng, label: seed.label }
     memoryCache.set(key, resolved)
@@ -103,7 +180,7 @@ export async function resolveLocation(
 
   const search = deps.search ?? searchPlaces
   try {
-    const [first] = await search(text)
+    const [first] = await search(text, undefined, deps.bias ?? undefined)
     if (!first) {
       memoryCache.set(key, null)
       return null

@@ -8,6 +8,8 @@ export type Place = {
   lat: number
   lng: number
   category: PlaceCategory
+  /** Short forms people actually type: "SLO", "SF", "LA". */
+  aliases?: string[]
 }
 
 export type Meetup = {

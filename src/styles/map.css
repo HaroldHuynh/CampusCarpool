@@ -318,10 +318,17 @@
 .ribbon-legend {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
   font-size: 10px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.ribbon-legend span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .match-payoff {

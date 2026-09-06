@@ -93,3 +93,49 @@ describe('resolveLocation', () => {
     expect(await resolveLocation('somewhere', { search, storage: null })).not.toBeNull()
   })
 })
+
+describe('resolveLocation abbreviations and loose matching', () => {
+  it('resolves LA to Los Angeles, not a place whose name merely contains "la"', async () => {
+    const search = vi.fn()
+    const result = await resolveLocation('LA', { search, storage: memoryStorage() })
+    expect(result?.label).toContain('Los Angeles')
+    expect(search).not.toHaveBeenCalled()
+  })
+
+  it('resolves SF to San Francisco rather than geocoding it', async () => {
+    const search = vi.fn()
+    const result = await resolveLocation('SF', { search, storage: memoryStorage() })
+    expect(result?.label).toContain('San Francisco')
+    expect(search).not.toHaveBeenCalled()
+  })
+
+  it('resolves SLO to San Luis Obispo', async () => {
+    const search = vi.fn()
+    const result = await resolveLocation('SLO', { search, storage: memoryStorage() })
+    expect(result?.lat).toBeGreaterThan(35)
+    expect(result?.lat).toBeLessThan(35.5)
+  })
+
+  it('does not match a fragment in the middle of a word', async () => {
+    const search = vi.fn().mockResolvedValue([])
+    await resolveLocation('exte', { search, storage: memoryStorage() })
+    expect(search).toHaveBeenCalled()
+  })
+
+  it('still matches on a whole word prefix', async () => {
+    const search = vi.fn()
+    const result = await resolveLocation('Dexter', { search, storage: memoryStorage() })
+    expect(result?.label).toContain('Dexter Lawn')
+    expect(search).not.toHaveBeenCalled()
+  })
+
+  it('passes a bias through to the geocoder', async () => {
+    const search = vi.fn().mockResolvedValue([])
+    await resolveLocation('somewhere odd', {
+      search,
+      storage: memoryStorage(),
+      bias: { lat: 35.3, lng: -120.66 },
+    })
+    expect(search).toHaveBeenCalledWith('somewhere odd', undefined, { lat: 35.3, lng: -120.66 })
+  })
+})

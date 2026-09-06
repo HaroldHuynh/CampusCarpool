@@ -46,10 +46,11 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
       const rides = await fetchOfferedRides()
       const resolved = await Promise.all(
         rides.map(async (ride) => {
-          const [from, to] = await Promise.all([
-            resolveLocation(ride.origin),
-            resolveLocation(ride.destination),
-          ])
+          // Resolve the pickup first, then anchor the drop-off to it. A ride's
+          // two ends are near each other by definition, and without the anchor
+          // "SF" geocodes to Sfax, Tunisia.
+          const from = await resolveLocation(ride.origin)
+          const to = await resolveLocation(ride.destination, { bias: from })
           return from && to ? { ride, origin: from, destination: to } : null
         }),
       )
@@ -380,9 +381,8 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
                     />
                   </span>
                   <span className="ribbon-legend">
-                    <span>their start</span>
-                    <span>you ride the highlighted leg</span>
-                    <span>their end</span>
+                    <span>{entry.ride.origin}</span>
+                    <span>{entry.ride.destination}</span>
                   </span>
 
                   {isSelected && detail ? (
@@ -392,18 +392,22 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
                           Meet at <b>{detail.meetup.label}</b>
                         </>
                       ) : (
-                        'Meet at the marked point on the map'
+                        <>Meet at the marked point on the map</>
                       )}
-                      , a <b>{detail.payoff.walkMinutes} minute</b> walk
+                      {detail.payoff.walkMinutes < 1 ? (
+                        <> — you are already starting there.</>
+                      ) : (
+                        <>
+                          , a <b>{detail.payoff.walkMinutes} minute</b> walk.
+                        </>
+                      )}
                       {detail.payoff.minutesSaved !== null ? (
                         <>
                           {' '}
-                          — about <b>{detail.payoff.minutesSaved} minutes</b> quicker than getting
-                          to where they set off, estimated.
+                          That is about <b>{detail.payoff.minutesSaved} minutes</b> quicker than
+                          getting yourself to where they set off (estimated).
                         </>
-                      ) : (
-                        '.'
-                      )}
+                      ) : null}
                     </span>
                   ) : null}
                 </button>
