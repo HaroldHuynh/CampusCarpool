@@ -7,14 +7,12 @@ export type Notice = { id: string; text: string }
 export function AppHeader({
   view,
   onChangeView,
-  action,
   notices,
   onDismissNotice,
   onClearNotices,
 }: {
   view: View
   onChangeView: (view: View) => void
-  action?: { label: string; onClick: () => void }
   notices: Notice[]
   onDismissNotice: (id: string) => void
   onClearNotices: () => void
@@ -90,16 +88,6 @@ export function AppHeader({
       </nav>
 
       <div className="header-actions">
-        {/* Rendered even when there is no action, so switching to a view
-            without one does not resize the header and shift the nav. */}
-        <span className="header-action-slot">
-          {action ? (
-            <button className="header-button" type="button" onClick={action.onClick}>
-              {action.label}
-            </button>
-          ) : null}
-        </span>
-
         <div className="bell-wrap" ref={bellRef}>
           <button
             type="button"

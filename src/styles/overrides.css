@@ -84,14 +84,6 @@
 
 /* ---------- header: notifications ---------- */
 
-/* Reserved even when a view has no action button, so moving between tabs
-   cannot resize the header and shove the nav sideways. */
-.header-action-slot {
-  display: inline-flex;
-  min-width: 150px;
-  justify-content: flex-end;
-}
-
 .bell-wrap {
   position: relative;
 }
@@ -346,7 +338,8 @@
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
-  max-width: 1240px;
+  /* Matches .requests exactly so the banner and the table share edges. */
+  max-width: 1140px;
   margin: 24px auto 26px;
   padding: 22px 26px;
   border-radius: 16px;
@@ -478,4 +471,15 @@
 /* Save sits under the left edge of the fields it belongs to. */
 .details-form .form-actions {
   justify-content: flex-start;
+}
+
+/* The action column was left-aligned inside a wide cell, leaving the buttons
+   floating well short of the table's right edge. */
+.table-shell th:last-child,
+.table-shell td:last-child {
+  text-align: right;
+}
+
+.row-actions {
+  justify-items: end;
 }

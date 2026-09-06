@@ -500,13 +500,6 @@ function App() {
             setView(next)
             setModalOpen(false)
           }}
-          action={
-            view === 'requests'
-              ? { label: '+ Post a request', onClick: () => setModalOpen(true) }
-              : view === 'rides'
-                ? { label: '+ Offer a ride', onClick: () => setModalOpen(true) }
-                : undefined
-          }
           notices={notices}
           onDismissNotice={dismissNotice}
           onClearNotices={clearNotices}
