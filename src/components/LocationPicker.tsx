@@ -21,12 +21,15 @@ export default function LocationPicker({
   value,
   onChange,
   placeholder,
+  bias,
 }: {
   id: string
   label: string
   value: string
   onChange: (label: string) => void
   placeholder?: string
+  /** Pulls results toward a known point — see searchPlaces. */
+  bias?: { lat: number; lng: number } | null
 }) {
   const listId = useId()
   const [query, setQuery] = useState(value)
@@ -52,7 +55,7 @@ export default function LocationPicker({
       const next = new AbortController()
       controller.current = next
 
-      searchPlaces(typed, next.signal)
+      searchPlaces(typed, next.signal, bias ?? undefined)
         .then((remote) => {
           setOffline(false)
           const seen = new Set(seeds.map((s) => s.label))
@@ -65,7 +68,7 @@ export default function LocationPicker({
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [query, value])
+  }, [query, value, bias])
 
   function choose(option: GeocodeResult) {
     onChange(option.label)

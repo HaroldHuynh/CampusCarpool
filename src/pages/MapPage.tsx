@@ -26,6 +26,24 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
     departAt: string
   } | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [originPoint, setOriginPoint] = useState<ResolvedLocation | null>(null)
+
+  // Anchors the destination search near the chosen origin. Without it, common
+  // names resolve to the wrong continent — "San Jose airport" lands in the
+  // Philippines.
+  useEffect(() => {
+    let live = true
+    if (!origin.trim()) {
+      setOriginPoint(null)
+      return
+    }
+    void resolveLocation(origin).then((point) => {
+      if (live) setOriginPoint(point)
+    })
+    return () => {
+      live = false
+    }
+  }, [origin])
 
   useEffect(() => {
     let live = true
@@ -203,6 +221,7 @@ export default function MapPage({ profile }: { profile: CampusProfile | null }) 
             value={destination}
             onChange={setDestination}
             placeholder="San Jose airport"
+            bias={originPoint}
           />
           <label htmlFor="map-depart">
             Leaving around

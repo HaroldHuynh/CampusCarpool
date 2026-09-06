@@ -1,3 +1,4 @@
+import { haversineKm } from './geometry'
 import type { PlaceCategory } from './meetup'
 
 export type GeocodeResult = {
@@ -8,6 +9,12 @@ export type GeocodeResult = {
 }
 
 const ENDPOINT = 'https://photon.komoot.io/api'
+
+/**
+ * Generous enough for any realistic carpool — San Luis Obispo to Davis is about
+ * 400 km — while still discarding a same-named place on another continent.
+ */
+const MAX_BIAS_KM = 1000
 
 type PhotonFeature = {
   geometry?: { coordinates?: [number, number] }
@@ -33,11 +40,18 @@ function labelOf(properties: Record<string, unknown>): string {
   return name || area
 }
 
+/**
+ * `bias` matters more than it looks: unbiased, "San Jose airport" resolves to
+ * San Jose in the Philippines, not California. Passing a nearby point pulls
+ * results toward where the rider actually is.
+ */
 export async function searchPlaces(
   query: string,
   signal?: AbortSignal,
+  bias?: { lat: number; lng: number },
 ): Promise<GeocodeResult[]> {
-  const url = `${ENDPOINT}?q=${encodeURIComponent(query)}&limit=5`
+  const nearby = bias ? `&lat=${bias.lat}&lon=${bias.lng}` : ''
+  const url = `${ENDPOINT}?q=${encodeURIComponent(query)}&limit=5${nearby}`
   const response = await fetch(url, { signal })
 
   if (!response.ok) {
@@ -51,6 +65,19 @@ export async function searchPlaces(
     const properties = feature.properties ?? {}
     const label = labelOf(properties)
     if (!coordinates || !label) return []
-    return [{ lng: coordinates[0], lat: coordinates[1], label, category: categoryOf(properties) }]
+
+    const result = {
+      lng: coordinates[0],
+      lat: coordinates[1],
+      label,
+      category: categoryOf(properties),
+    }
+
+    // Photon's own bias is only a ranking nudge: unbiased or not, "San Jose
+    // airport" still returns San Jose, Mindoro ahead of California. Dropping
+    // far-flung hits is what actually keeps a demo on the right continent.
+    if (bias && haversineKm(bias, result) > MAX_BIAS_KM) return []
+
+    return [result]
   })
 }
