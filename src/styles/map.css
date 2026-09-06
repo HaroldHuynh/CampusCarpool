@@ -1,0 +1,274 @@
+/* Map view. Extends campus.css — every colour here is one of its tokens. */
+
+/* Toolbar icon ------------------------------------------------------------ */
+
+.heading-with-map {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.heading-with-map h2 {
+  margin: 0;
+}
+
+/* Sits with the heading, not on it: quiet until you reach for it. */
+.map-button.map-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--green-dark);
+  cursor: pointer;
+}
+
+.map-button.map-button:hover {
+  border-color: var(--green);
+  background: var(--mint);
+}
+
+.map-button.map-button:focus-visible {
+  outline: 2px solid var(--green-dark);
+  outline-offset: 2px;
+}
+
+.map-button svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* Dialog ------------------------------------------------------------------ */
+
+dialog.map-dialog {
+  width: min(1040px, 94vw);
+  max-width: min(1040px, 94vw);
+  padding: 26px 28px 28px;
+}
+
+.map-filter {
+  display: inline-flex;
+  gap: 4px;
+  margin: 4px 0 16px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--mint);
+}
+
+.map-filter button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--green-dark);
+  cursor: pointer;
+}
+
+.map-filter button.is-on {
+  background: #fff;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.map-filter button small {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--cream);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.map-filter button:focus-visible {
+  outline: 2px solid var(--green-dark);
+  outline-offset: 2px;
+}
+
+.map-dialog-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* Map surface ------------------------------------------------------------- */
+
+.map-canvas {
+  position: relative;
+  min-width: 0;
+  height: 440px;
+  background: var(--mint);
+}
+
+.map-canvas .leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: var(--mint);
+  font-family: "DM Sans", sans-serif;
+}
+
+.map-canvas .leaflet-interactive {
+  cursor: pointer;
+}
+
+.map-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 7px;
+  padding: 26px;
+  text-align: center;
+  background: var(--mint);
+}
+
+.map-fallback strong {
+  font:
+    600 20px/1.2 Fraunces,
+    serif;
+  color: var(--ink);
+}
+
+.map-fallback span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Side panel -------------------------------------------------------------- */
+
+.map-dialog-panel {
+  min-width: 0;
+  height: 440px;
+  overflow-y: auto;
+  padding: 18px;
+  border-left: 1px solid var(--line);
+  background: var(--cream);
+}
+
+.map-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.pin-card {
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.pin-route {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.pin-meta {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pin-note {
+  margin: 12px 0 0;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: var(--mint);
+  font-size: 12px;
+  color: var(--green-dark);
+}
+
+.pin-contact {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--mint);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--green-dark);
+}
+
+.pin-card .primary {
+  margin-top: 14px;
+  width: 100%;
+}
+
+.map-state {
+  padding: 22px 18px;
+  border: 1px dashed #cdd8d2;
+  border-radius: 12px;
+  text-align: center;
+  background: #fff;
+}
+
+.map-state strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.map-state p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.map-state button {
+  margin-top: 14px;
+  padding: 9px 18px;
+  border: 1px solid var(--green);
+  border-radius: 999px;
+  background: none;
+  font-size: 13px;
+  color: var(--green-dark);
+  cursor: pointer;
+}
+
+.map-state button:hover {
+  background: var(--mint);
+}
+
+/* Responsive -------------------------------------------------------------- */
+
+@media (max-width: 820px) {
+  .map-dialog-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .map-canvas {
+    height: 300px;
+  }
+
+  .map-dialog-panel {
+    height: auto;
+    max-height: 260px;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-fade-anim .leaflet-tile,
+  .leaflet-zoom-anim .leaflet-zoom-animated {
+    transition: none !important;
+  }
+}

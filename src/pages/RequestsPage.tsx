@@ -1,13 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Modal, formatWhen } from '../components/Shell'
 import PageBanner from '../components/PageBanner'
+import MapButton from '../components/MapButton'
+import RideMapDialog from '../map/RideMapDialog'
 import {
   closeRideRequest,
+  requestSeat,
   fetchRideRequests,
   postRideRequest,
   type CampusProfile,
   type RideRequest,
 } from '../data/api'
+
+const SEAT_MESSAGE: Record<string, string> = {
+  requested: 'Request sent — the driver will confirm.',
+  already_requested: 'You already asked for a seat on this ride.',
+  full: 'That ride is full.',
+  own_ride: 'This is your own ride.',
+  not_open: 'That ride is no longer taking requests.',
+  missing: 'That ride is gone.',
+}
 
 function initials(name: string) {
   return name
@@ -35,6 +47,7 @@ function RequestsPage({
 }) {
   const [requests, setRequests] = useState<RideRequest[]>([])
   const [search, setSearch] = useState('')
+  const [mapOpen, setMapOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [formError, setFormError] = useState('')
@@ -130,7 +143,10 @@ function RequestsPage({
         <div className="section-heading">
           <div>
             <p className="eyebrow">OPEN REQUESTS</p>
-            <h2 id="requests-title">Who needs a ride</h2>
+            <div className="heading-with-map">
+              <h2 id="requests-title">Who needs a ride</h2>
+              <MapButton onClick={() => setMapOpen(true)} />
+            </div>
           </div>
           <div className="toolbar">
             <label className="search">
@@ -316,6 +332,25 @@ function RequestsPage({
           </div>
         </form>
       </Modal>
+
+      <RideMapDialog
+        open={mapOpen}
+        board="requests"
+        profile={profile}
+        onClose={() => setMapOpen(false)}
+        onRequestSeat={async (rideId) => {
+          const outcome = await requestSeat(rideId)
+          onToast(SEAT_MESSAGE[outcome] ?? 'Request sent.')
+        }}
+        onCloseRequest={async (requestId) => {
+          if (!profile) {
+            throw new Error('Sign in to close a request.')
+          }
+          await closeRideRequest(requestId, profile.id)
+          onToast('Request closed.')
+          await load()
+        }}
+      />
     </main>
   )
 }
