@@ -296,7 +296,7 @@ function RidesPage({
                         ride.mySeat.initiated_by === 'driver' ? (
                         // The driver offered; this rider owes the answer, and
                         // it is given on their profile.
-                        <span className="own-ride-note">Offered to you — answer on My profile</span>
+                        <span className="own-ride-note">Offered to you</span>
                       ) : ride.mySeat ? (
                         <button
                           className="reserve is-secondary"

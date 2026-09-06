@@ -18,7 +18,7 @@ import {
 } from '../data/api'
 
 const SEAT_MESSAGE: Record<string, string> = {
-  requested: 'Request sent — the driver will confirm.',
+  requested: 'Request sent. The driver will confirm.',
   already_requested: 'You already asked for a seat on this ride.',
   full: 'That ride is full.',
   own_ride: 'This is your own ride.',
