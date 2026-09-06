@@ -48,19 +48,17 @@ export default function ProfileCardDialog({
             ) : (
               <p className="profile-contact is-private">Contact details appear after a seat request is made.</p>
             )}
-            <section className="profile-reviews" aria-label="Reviews">
-              <h3>Reviews</h3>
-              {profile.reviews.length ? (
-                profile.reviews.map((review) => (
+            {profile.reviews.length ? (
+              <section className="profile-reviews" aria-label="Reviews">
+                <h3>Reviews</h3>
+                {profile.reviews.map((review) => (
                   <article key={review.id}>
                     <strong>{review.reviewer_name}</strong>
                     <span>{'★'.repeat(review.stars)}{'☆'.repeat(5 - review.stars)}</span>
                   </article>
-                ))
-              ) : (
-                <p className="review-empty">No reviews yet.</p>
-              )}
-            </section>
+                ))}
+              </section>
+            ) : null}
           </>
         ) : null}
       </div>
