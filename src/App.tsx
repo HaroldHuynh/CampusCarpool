@@ -185,6 +185,15 @@ function App() {
     }
   }
 
+  async function refreshProfile() {
+    try {
+      const next = await getMyProfile()
+      if (next) setCampusProfile(next)
+    } catch {
+      // A transient read failure just leaves the last known name in place.
+    }
+  }
+
   useEffect(() => {
     getCurrentUser()
       .then(enter)
@@ -312,6 +321,26 @@ function App() {
     }
   }, [currentUser, campusProfile])
 
+  // The header and every ride card read the name off this row; keep the copy
+  // in memory current whether the edit came from this tab or another device.
+  const profileId = campusProfile?.id
+  useEffect(() => {
+    if (!currentUser || !profileId) return
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel(`my-profile-${profileId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'campus_profiles', filter: `id=eq.${profileId}` },
+        () => void refreshProfile(),
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [currentUser, profileId])
+
   function dismissNotice(id: string) {
     const next = new Set(dismissed)
     next.add(id)
@@ -324,6 +353,20 @@ function App() {
     notices.forEach((item) => next.add(item.id))
     setDismissed(next)
     setNotices([])
+  }
+
+  // The bell only switches the view; the destination page owns the scroll so it
+  // can wait for its own data to render the target row first.
+  function navigateNotice(notice: Notice) {
+    const target = notice.targetId
+    if (!target) return
+    if (target.startsWith('ride-')) {
+      setFocusRideId(target.slice('ride-'.length))
+      setFocusRequestId(null)
+    } else if (target.startsWith('request-')) {
+      setFocusRequestId(Number(target.slice('request-'.length)))
+      setFocusRideId(null)
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -697,6 +740,7 @@ function App() {
           unreadMessages={unreadMessageCount}
           onDismissNotice={dismissNotice}
           onClearNotices={clearNotices}
+          onNavigateNotice={navigateNotice}
         />
 
         {view === 'requests' ? (
@@ -725,6 +769,8 @@ function App() {
             onCloseModal={() => setModalOpen(false)}
             onToast={showToast}
             onGoToRequests={() => setView('requests')}
+            focusRideId={focusRideId}
+            onFocusRideHandled={() => setFocusRideId(null)}
             onReviewOffer={(requestId) => {
               setFocusRequestId(requestId)
               setView('profile')
@@ -751,6 +797,7 @@ function App() {
             focusRideId={focusRideId}
             onFocusRequestHandled={() => setFocusRequestId(null)}
             onFocusRideHandled={() => setFocusRideId(null)}
+            onProfileSaved={refreshProfile}
           />
         )}
 

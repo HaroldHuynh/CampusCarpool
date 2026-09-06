@@ -347,7 +347,7 @@ export default function RideMapDialog({
                   <button
                     type="button"
                     className="map-profile-link"
-                    onClick={() => leaveMap(() => onOpenProfile(selected.ride.driver_profile_id!))}
+                    onClick={() => onOpenProfile(selected.ride.driver_profile_id!)}
                   >
                     {selected.ride.driver?.display_name ?? 'Campus driver'}
                   </button>
@@ -387,7 +387,7 @@ export default function RideMapDialog({
                             <button
                               type="button"
                               className="map-profile-link"
-                              onClick={() => leaveMap(() => onOpenProfile(seat.rider_profile_id!))}
+                              onClick={() => onOpenProfile(seat.rider_profile_id!)}
                             >
                               {seat.rider_name}
                             </button>
@@ -427,7 +427,7 @@ export default function RideMapDialog({
                       <button
                         type="button"
                         className="map-profile-link"
-                        onClick={() => leaveMap(() => onOpenProfile(selected.ride.driver_profile_id!))}
+                        onClick={() => onOpenProfile(selected.ride.driver_profile_id!)}
                       >
                         {selected.ride.driver?.display_name ?? 'your driver'}
                       </button>
@@ -515,8 +515,9 @@ export default function RideMapDialog({
                     type="button"
                     className="map-profile-link"
                     onClick={() =>
-                      leaveMap(() =>
-                        onOpenProfile(selected.request.requester_profile_id!, selected.request.contact_info),
+                      onOpenProfile(
+                        selected.request.requester_profile_id!,
+                        selected.request.contact_info,
                       )
                     }
                   >

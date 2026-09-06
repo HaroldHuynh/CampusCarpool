@@ -2,7 +2,13 @@ import { useEffect, useRef } from 'react'
 import { getSupabaseClient } from './supabase'
 
 /** Tables whose changes should refresh a board. */
-const TABLES = ['rides', 'ride_requests', 'ride_reservations'] as const
+const TABLES = [
+  'rides',
+  'ride_requests',
+  'ride_reservations',
+  'user_ratings',
+  'campus_profiles',
+] as const
 
 /**
  * Re-runs `reload` whenever anyone changes a ride, request or seat, so the

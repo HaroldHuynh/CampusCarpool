@@ -419,7 +419,10 @@ export async function fetchHistory(profileId: string) {
         'ride_id, status, initiated_by, rides(*, driver:campus_profiles!driver_profile_id(display_name, rating_average, rating_count))',
       )
       .eq('rider_profile_id', profileId),
-    supabase.from('user_ratings').select('ride_id, rated_profile_id').eq('rater_profile_id', profileId),
+    supabase
+      .from('user_ratings')
+      .select('ride_id, rated_profile_id, stars')
+      .eq('rater_profile_id', profileId),
     supabase
       .from('ride_requests')
       .select(
@@ -468,9 +471,11 @@ export async function fetchHistory(profileId: string) {
       } => row !== null,
     )
 
-  const rated = new Set(
-    ((given.data ?? []) as { ride_id: string; rated_profile_id: string }[]).map(
-      (row) => `${row.ride_id}:${row.rated_profile_id}`,
+  // Keyed by `${rideId}:${ratedProfileId}` -> the stars you gave, so the
+  // profile page can show your score back instead of a bare "Rated".
+  const rated = new Map(
+    ((given.data ?? []) as { ride_id: string; rated_profile_id: string; stars: number }[]).map(
+      (row) => [`${row.ride_id}:${row.rated_profile_id}`, row.stars] as const,
     ),
   )
 

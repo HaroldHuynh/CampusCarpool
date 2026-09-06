@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { fetchProfileCard, type ProfileCard } from '../data/api'
+import { getSupabaseClient } from '../lib/supabase'
 import { Modal } from './Shell'
 
 export default function ProfileCardDialog({
@@ -21,16 +22,48 @@ export default function ProfileCardDialog({
   const [profile, setProfile] = useState<ProfileCard | null>(null)
   const [error, setError] = useState('')
 
+  const refresh = useCallback(
+    (showSpinner: boolean) => {
+      if (!profileId) return
+      if (showSpinner) setProfile(null)
+      setError('')
+      void fetchProfileCard(profileId)
+        .then(setProfile)
+        .catch((reason: unknown) =>
+          setError(reason instanceof Error ? reason.message : 'Could not load this profile.'),
+        )
+    },
+    [profileId],
+  )
+
   useEffect(() => {
     if (!open || !profileId) return
-    setProfile(null)
-    setError('')
-    void fetchProfileCard(profileId)
-      .then(setProfile)
-      .catch((reason: unknown) =>
-        setError(reason instanceof Error ? reason.message : 'Could not load this profile.'),
+    refresh(true)
+  }, [open, profileId, refresh])
+
+  // A rating or profile edit landing while the card is open should show without
+  // a reopen, the same way the boards refresh themselves.
+  useEffect(() => {
+    if (!open || !profileId) return
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel(`profile-card-${profileId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_ratings', filter: `rated_profile_id=eq.${profileId}` },
+        () => refresh(false),
       )
-  }, [open, profileId])
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'campus_profiles', filter: `id=eq.${profileId}` },
+        () => refresh(false),
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [open, profileId, refresh])
 
   return (
     <Modal open={open} onClose={onClose} eyebrow="MEMBER PROFILE" title={profile?.display_name ?? 'Profile'}>

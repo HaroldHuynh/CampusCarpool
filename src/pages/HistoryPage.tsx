@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import ContactFields from '../components/ContactFields'
 import ProfileCardDialog from '../components/ProfileCardDialog'
 import { useLiveData } from '../lib/useLiveData'
+import { useScrollToTarget } from '../lib/useScrollToTarget'
 import { formatPrice } from '../components/Shell'
 import { getAccessRequest, saveProfile, type ContactMethod } from '../auth/auth'
 import {
@@ -75,19 +76,20 @@ function TripCard({
 
 function StarPicker({
   label,
-  rated,
+  myStars,
   onRate,
   onOpenProfile,
 }: {
   label: string
-  rated: boolean
+  /** The score you already gave this person for this ride, if any. */
+  myStars: number | null
   onRate: (stars: number) => void
   onOpenProfile?: () => void
 }) {
   const [hover, setHover] = useState(0)
   const [saving, setSaving] = useState(false)
 
-  if (rated) {
+  if (myStars != null) {
     return (
       <div className="rate-person">
         {onOpenProfile ? (
@@ -96,6 +98,13 @@ function StarPicker({
           </button>
         ) : null}
         <span>Rated</span>
+        <div className="star-picker is-locked" aria-label={`You gave ${label} ${myStars} of 5 stars`}>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <span key={n} className={n <= myStars ? 'is-lit' : undefined} aria-hidden="true">
+              ★
+            </span>
+          ))}
+        </div>
       </div>
     )
   }
@@ -147,6 +156,7 @@ function HistoryPage({
   focusRideId,
   onFocusRequestHandled,
   onFocusRideHandled,
+  onProfileSaved,
 }: {
   profile: CampusProfile | null
   onToast: (t: string) => void
@@ -155,10 +165,13 @@ function HistoryPage({
   focusRideId?: string | null
   onFocusRequestHandled?: () => void
   onFocusRideHandled?: () => void
+  /** Names on ride cards and the header come from the profile row this form
+   *  writes, so the app has to re-read it once a save lands. */
+  onProfileSaved?: () => void
 }) {
   const [offered, setOffered] = useState<HistoryRide[]>([])
   const [reserved, setReserved] = useState<HistoryRide[]>([])
-  const [rated, setRated] = useState<Set<string>>(new Set())
+  const [rated, setRated] = useState<Map<string, number>>(new Map())
   const [requests, setRequests] = useState<RideRequest[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
@@ -192,21 +205,20 @@ function HistoryPage({
 
   useLiveData(load, 'profile-history')
 
-  useEffect(() => {
-    if (!focusRideId || !offered.some((ride) => ride.id === focusRideId)) return
-    window.requestAnimationFrame(() => {
-      document.getElementById(`ride-${focusRideId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      onFocusRideHandled?.()
-    })
-  }, [focusRideId, offered, onFocusRideHandled])
+  // A notice can point at a ride you drove or one you rode, so check both lists
+  // before scrolling . otherwise a confirmed-seat alert never lands anywhere.
+  useScrollToTarget(
+    focusRideId ? `ride-${focusRideId}` : null,
+    offered.some((ride) => ride.id === focusRideId) ||
+      reserved.some((ride) => ride.id === focusRideId),
+    onFocusRideHandled,
+  )
 
-  useEffect(() => {
-    if (!focusRequestId || !requests.some((request) => request.id === focusRequestId)) return
-    window.requestAnimationFrame(() => {
-      document.getElementById(`request-${focusRequestId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      onFocusRequestHandled?.()
-    })
-  }, [focusRequestId, requests, onFocusRequestHandled])
+  useScrollToTarget(
+    focusRequestId ? `request-${focusRequestId}` : null,
+    requests.some((request) => request.id === focusRequestId),
+    onFocusRequestHandled,
+  )
 
   useEffect(() => {
     getAccessRequest()
@@ -231,6 +243,8 @@ function HistoryPage({
     try {
       await saveProfile({ firstName, lastName, contactMethod, contactValue })
       onToast('Details saved.')
+      onProfileSaved?.()
+      await load()
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Could not save.')
     } finally {
@@ -629,7 +643,7 @@ function HistoryPage({
                       <StarPicker
                         key={passenger.rider_profile_id}
                         label={passenger.rider_name}
-                        rated={rated.has(`${ride.id}:${passenger.rider_profile_id}`)}
+                        myStars={rated.get(`${ride.id}:${passenger.rider_profile_id}`) ?? null}
                         onRate={(stars) => handleRate(ride.id, passenger.rider_profile_id!, stars)}
                         onOpenProfile={() => setProfileCardId(passenger.rider_profile_id)}
                       />
@@ -642,7 +656,7 @@ function HistoryPage({
                   {ride.driver_profile_id ? (
                     <StarPicker
                       label={ride.driver?.display_name ?? 'your driver'}
-                      rated={rated.has(`${ride.id}:${ride.driver_profile_id}`)}
+                      myStars={rated.get(`${ride.id}:${ride.driver_profile_id}`) ?? null}
                       onRate={(stars) => handleRate(ride.id, ride.driver_profile_id!, stars)}
                       onOpenProfile={() => setProfileCardId(ride.driver_profile_id)}
                     />

@@ -243,17 +243,25 @@
 /* Every star rendered filled, so the control always looked like 5 stars.
    Now they are outlined until hovered, and fill up to the cursor. */
 
-.star-picker button {
+.star-picker button,
+.star-picker.is-locked span {
   color: #d6ded8;
   transition: color 0.12s ease, transform 0.12s ease;
 }
 
-.star-picker button.is-lit {
+.star-picker button.is-lit,
+.star-picker.is-locked span.is-lit {
   color: #f0b429;
 }
 
 .star-picker button:disabled {
   cursor: default;
+}
+
+.star-picker.is-locked {
+  display: inline-flex;
+  gap: 2px;
+  letter-spacing: 1px;
 }
 
 /* ---------- seat requests & ride lifecycle ---------- */

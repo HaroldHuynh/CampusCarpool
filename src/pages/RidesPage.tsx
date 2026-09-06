@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Modal, formatPrice, formatWhen, ratingLabel } from '../components/Shell'
 import PageBanner from '../components/PageBanner'
 import { useLiveData } from '../lib/useLiveData'
+import { useScrollToTarget } from '../lib/useScrollToTarget'
 import MapButton from '../components/MapButton'
 import LocationPicker, { type PickedLocation } from '../components/LocationPicker'
 import ProfileCardDialog from '../components/ProfileCardDialog'
@@ -28,8 +29,8 @@ const REQUEST_MESSAGE: Record<string, string> = {
   missing: 'That ride is gone.',
 }
 
-function ContactName({ name, contact }: { name: string; contact?: RideContact }) {
-  if (!contact?.contact_value) return <>{name}</>
+function ContactName({ name, contact, self }: { name: string; contact?: RideContact; self?: boolean }) {
+  if (self || !contact?.contact_value) return <>{name}</>
   return <span className="contact-person" tabIndex={0}>{name}<span className="contact-popover" role="tooltip"><small>{contact.contact_method === 'instagram' ? 'Instagram' : 'Phone'}</small><strong>{contact.contact_value}</strong></span></span>
 }
 
@@ -38,18 +39,20 @@ function RiderProfileLink({
   profileId,
   onOpen,
   contact,
+  self,
 }: {
   name: string
   profileId: string | null
   onOpen: (profileId: string) => void
   contact?: RideContact
+  self?: boolean
 }) {
-  if (!profileId) return <ContactName name={name} contact={contact} />
+  if (!profileId) return <ContactName name={name} contact={contact} self={self} />
 
   return (
     <button type="button" className="profile-trigger contact-person" onClick={() => onOpen(profileId)}>
       {name}
-      {contact?.contact_value ? (
+      {!self && contact?.contact_value ? (
         <span className="contact-popover" role="tooltip">
           <small>{contact.contact_method === 'instagram' ? 'Instagram' : 'Phone'}</small>
           <strong>{contact.contact_value}</strong>
@@ -69,6 +72,8 @@ function RidesPage({
   onReviewOffer,
   onOpenMyRide,
   onMessageProfile,
+  focusRideId,
+  onFocusRideHandled,
 }: {
   profile: CampusProfile | null
   modalOpen: boolean
@@ -79,6 +84,8 @@ function RidesPage({
   onReviewOffer: (requestId: number) => void
   onOpenMyRide: (rideId: string) => void
   onMessageProfile: (profileId: string, displayName: string, ratingAverage: number, ratingCount: number) => void
+  focusRideId?: string | null
+  onFocusRideHandled?: () => void
 }) {
   const [rides, setRides] = useState<OfferedRide[]>([])
   const [search, setSearch] = useState('')
@@ -124,6 +131,14 @@ function RidesPage({
 
   // Rides, requests and seats all change under us while the page is open.
   useLiveData(load, 'rides-board')
+
+  // A notification that lands on this board scrolls to its ride once the row
+  // has actually rendered.
+  useScrollToTarget(
+    focusRideId ? `ride-${focusRideId}` : null,
+    rides.some((ride) => ride.id === focusRideId),
+    onFocusRideHandled,
+  )
 
   const shown = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -269,7 +284,7 @@ function RidesPage({
                             : 'No ratings yet'
                         }
                       >
-                        <ContactName name={isMine ? 'You' : (ride.driver?.display_name ?? 'Campus driver')} contact={contacts[ride.id]?.find((c) => c.profile_id === ride.driver_profile_id)} /> ·{' '}
+                        <ContactName name={isMine ? 'You' : (ride.driver?.display_name ?? 'Campus driver')} contact={contacts[ride.id]?.find((c) => c.profile_id === ride.driver_profile_id)} self={isMine} /> ·{' '}
                         {ratingLabel(ride.driver)}
                       </button>
                       {ride.note ? <span className="post-description">{ride.note}</span> : null}
@@ -295,6 +310,7 @@ function RidesPage({
                               <RiderProfileLink
                                 name={seat.rider_name}
                                 profileId={seat.rider_profile_id}
+                                self={seat.rider_profile_id === profile?.id}
                                 contact={contacts[ride.id]?.find((c) => c.profile_id === seat.rider_profile_id)}
                                 onOpen={(profileId) => {
                                   setProfileId(profileId)

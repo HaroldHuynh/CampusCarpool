@@ -16,6 +16,7 @@ export function AppHeader({
   unreadMessages,
   onDismissNotice,
   onClearNotices,
+  onNavigateNotice,
 }: {
   view: View
   onChangeView: (view: View) => void
@@ -23,6 +24,9 @@ export function AppHeader({
   unreadMessages: number
   onDismissNotice: (id: string) => void
   onClearNotices: () => void
+  /** Hands the destination row to the page so it can scroll once its data has
+   *  loaded . a raw getElementById here races the page's own fetch. */
+  onNavigateNotice?: (notice: Notice) => void
 }) {
   const [open, setOpen] = useState(false)
   const [flash, setFlash] = useState<Notice | null>(null)
@@ -51,14 +55,7 @@ export function AppHeader({
   function openNotice(notice: Notice) {
     if (notice.goTo) {
       onChangeView(notice.goTo)
-      const targetId = notice.targetId
-      if (targetId) {
-        window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => {
-            document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          })
-        })
-      }
+      if (notice.targetId) onNavigateNotice?.(notice)
     }
     onDismissNotice(notice.id)
     setOpen(false)
