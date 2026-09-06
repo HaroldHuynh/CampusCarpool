@@ -296,6 +296,44 @@ export async function saveProfile(details: {
   }
 }
 
+/**
+ * Starts a password reset. Supabase emails the recovery template, which
+ * carries {{ .Token }} — a 6-digit code rather than a link, so the flow works
+ * from any host without redirect URLs having to be allow-listed.
+ *
+ * Always resolves, even for an address that has no account: reporting which
+ * emails exist would let anyone enumerate registered students.
+ */
+export async function sendPasswordReset(email: string) {
+  const normalizedEmail = normalizeEmail(email)
+  assertCalPolyEmail(normalizedEmail)
+
+  const { error } = await getSupabaseClient().auth.resetPasswordForEmail(normalizedEmail)
+
+  if (error && !/not found|invalid/i.test(error.message)) {
+    throw error
+  }
+
+  return normalizedEmail
+}
+
+/** Verifies a recovery code, which signs the user in so the password can be set. */
+export async function verifyRecoveryCode(email: string, token: string) {
+  const normalizedEmail = normalizeEmail(email)
+
+  const { data, error } = await getSupabaseClient().auth.verifyOtp({
+    email: normalizedEmail,
+    token: token.replace(/\s/g, ''),
+    type: 'recovery',
+  })
+
+  if (error) {
+    throw error
+  }
+
+  return data.user
+}
+
 export async function signInWithPassword(email: string, password: string) {
   const normalizedEmail = normalizeEmail(email)
   assertCalPolyEmail(normalizedEmail)

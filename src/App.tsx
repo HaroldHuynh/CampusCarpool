@@ -13,6 +13,8 @@ import {
   isCalPolyEmail,
   isProfileIncomplete,
   resendSignUpCode,
+  sendPasswordReset,
+  verifyRecoveryCode,
   saveProfile,
   sendClaimCode,
   setPassword as setAccountPassword,
@@ -25,7 +27,7 @@ import {
 } from './auth/auth'
 
 type Mode = 'signin' | 'signup'
-type Step = 'credentials' | 'verify' | 'finish'
+type Step = 'credentials' | 'verify' | 'finish' | 'reset'
 
 function App() {
   const [mode, setMode] = useState<Mode>('signin')
@@ -124,6 +126,65 @@ function App() {
       } else {
         setErrorMessage(message)
       }
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleForgotPassword() {
+    setErrorMessage('')
+
+    if (!isCalPolyEmail(email)) {
+      setErrorMessage('Enter your @calpoly.edu email first.')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      await sendPasswordReset(email)
+      setNeedsPassword(true)
+      setStep('reset')
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Could not send the code.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleReset(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setErrorMessage('')
+    setIsSubmitting(true)
+
+    try {
+      await verifyRecoveryCode(email, code)
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'That code did not work.')
+      setIsSubmitting(false)
+      return
+    }
+
+    // The code is spent at this point, so a failure here is about the password
+    // itself — say so rather than blaming the code.
+    try {
+      await setAccountPassword(password)
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Could not set that password. Try another.',
+      )
+      setIsSubmitting(false)
+      return
+    }
+
+    try {
+      const user = await getCurrentUser()
+      setCode('')
+      setPassword('')
+      setNeedsPassword(false)
+      setStep('credentials')
+      showToast('Password updated. You are signed in.')
+      await enter(user)
     } finally {
       setIsSubmitting(false)
     }
@@ -332,6 +393,75 @@ function App() {
     )
   }
 
+  if (step === 'reset') {
+    return (
+      <main className="auth-shell">
+        <section className="auth-card" aria-labelledby="auth-title">
+          <p className="eyebrow">Reset password</p>
+          <h1 id="auth-title">Choose a new password</h1>
+          <p className="lede">
+            If <strong>{email}</strong> has an account, we sent it a 6-digit code.
+          </p>
+
+          <form className="auth-form" onSubmit={handleReset}>
+            <label>
+              6-digit code
+              <input
+                className="code-input"
+                type="text"
+                value={code}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                placeholder="123456"
+                onChange={(event) => setCode(event.target.value.replace(/[^0-9]/g, ''))}
+              />
+            </label>
+
+            <label>
+              New password
+              <input
+                type="password"
+                value={password}
+                autoComplete="new-password"
+                placeholder="At least 6 characters"
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </label>
+
+            <button
+              className="submit"
+              type="submit"
+              disabled={isSubmitting || code.length !== 6 || password.length < 6}
+            >
+              {isSubmitting ? 'Saving...' : 'Set new password'}
+            </button>
+          </form>
+
+          <div className="auth-actions">
+            <button
+              type="button"
+              className="auth-alt"
+              onClick={() => {
+                setStep('credentials')
+                setCode('')
+                setPassword('')
+                          setNeedsPassword(false)
+                setErrorMessage('')
+              }}
+            >
+              Back to sign in
+            </button>
+          </div>
+
+          <div className="status-area" aria-live="polite">
+            {errorMessage ? <p className="auth-error">{errorMessage}</p> : null}
+          </div>
+        </section>
+      </main>
+    )
+  }
+
   if (step === 'verify') {
     return (
       <main className="auth-shell">
@@ -477,16 +607,29 @@ function App() {
           </button>
         </form>
 
-        <button
-          className="auth-alt"
-          type="button"
-          onClick={() => {
-            setMode(mode === 'signup' ? 'signin' : 'signup')
-            setErrorMessage('')
-          }}
-        >
-          {mode === 'signup' ? 'Already have an account? Sign in' : 'Create an account'}
-        </button>
+        <div className="auth-actions">
+          <button
+            className="auth-alt"
+            type="button"
+            onClick={() => {
+              setMode(mode === 'signup' ? 'signin' : 'signup')
+              setErrorMessage('')
+            }}
+          >
+            {mode === 'signup' ? 'Already have an account? Sign in' : 'Create an account'}
+          </button>
+
+          {mode === 'signin' ? (
+            <button
+              className="auth-alt"
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleForgotPassword}
+            >
+              Forgot password?
+            </button>
+          ) : null}
+        </div>
 
         <div className="status-area" aria-live="polite">
           {errorMessage ? <p className="auth-error">{errorMessage}</p> : null}
