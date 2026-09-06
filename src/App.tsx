@@ -407,7 +407,6 @@ function App() {
                   type="text"
                   value={firstName}
                   autoComplete="given-name"
-                  placeholder="Harold"
                   onChange={(event) => setFirstName(event.target.value)}
                 />
               </label>
@@ -418,7 +417,6 @@ function App() {
                   type="text"
                   value={lastName}
                   autoComplete="family-name"
-                  placeholder="Huynh"
                   onChange={(event) => setLastName(event.target.value)}
                 />
               </label>
@@ -682,7 +680,6 @@ function App() {
                     type="text"
                     value={firstName}
                     autoComplete="given-name"
-                    placeholder="Sally"
                     onChange={(event) => setFirstName(event.target.value)}
                   />
                 </label>
@@ -694,7 +691,6 @@ function App() {
                     type="text"
                     value={lastName}
                     autoComplete="family-name"
-                    placeholder="Nguyen"
                     onChange={(event) => setLastName(event.target.value)}
                   />
                 </label>

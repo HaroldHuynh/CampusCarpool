@@ -33,7 +33,6 @@ function PhoneField({ id, value, onChange }: Props) {
       inputMode="tel"
       autoComplete="tel"
       value={value}
-      placeholder="(805) 555-0134"
       onChange={(event) => {
         const edit = applyPhoneEdit(
           event.target.value,
