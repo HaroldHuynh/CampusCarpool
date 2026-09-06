@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   fetchOfferedRides,
   fetchRideRequests,
+  offerRideForRequest,
+  respondToRideOffer,
+  respondToSeatRequest,
   type CampusProfile,
   type OfferedRide,
   type RideRequest,
@@ -95,6 +98,9 @@ export default function RideMapDialog({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [actionNote, setActionNote] = useState('')
+  const [offerRequestId, setOfferRequestId] = useState<number | null>(null)
+  const [offerSeats, setOfferSeats] = useState('3')
+  const [offerPrice, setOfferPrice] = useState('20')
 
   useEffect(() => {
     const dialog = ref.current
@@ -109,6 +115,7 @@ export default function RideMapDialog({
       setFilter(board)
       setSelectedId(null)
       setActionNote('')
+      setOfferRequestId(null)
     }
   }, [open, board])
 
@@ -198,6 +205,12 @@ export default function RideMapDialog({
     return items.map((item) => item.to)
   }, [selected, items])
 
+  const selectItem = useCallback((id: string) => {
+    setSelectedId(id)
+    setOfferRequestId(null)
+    setActionNote('')
+  }, [])
+
   async function act(run: () => Promise<void>, note: string) {
     setBusy(true)
     setActionNote('')
@@ -210,6 +223,20 @@ export default function RideMapDialog({
     } finally {
       setBusy(false)
     }
+  }
+
+  async function answerSeatRequest(requestId: string, accept: boolean) {
+    await act(async () => {
+      const changed = await respondToSeatRequest(requestId, accept)
+      if (!changed) throw new Error('That seat request is no longer available.')
+    }, accept ? 'Rider accepted.' : 'Rider declined.')
+  }
+
+  async function answerRideOffer(requestId: number, accept: boolean) {
+    await act(async () => {
+      const changed = await respondToRideOffer(requestId, accept)
+      if (!changed) throw new Error('That ride offer is no longer available.')
+    }, accept ? 'Ride accepted.' : 'Ride offer declined.')
   }
 
   const emptyCopy =
@@ -248,6 +275,8 @@ export default function RideMapDialog({
           onClick={() => {
             setFilter('rides')
             setSelectedId(null)
+            setOfferRequestId(null)
+            setActionNote('')
           }}
         >
           Rides offered
@@ -260,6 +289,8 @@ export default function RideMapDialog({
           onClick={() => {
             setFilter('requests')
             setSelectedId(null)
+            setOfferRequestId(null)
+            setActionNote('')
           }}
         >
           Ride requests
@@ -268,7 +299,7 @@ export default function RideMapDialog({
       </div>
 
       <div className="map-dialog-body">
-        <MapCanvas routes={routes} markers={markers} fit={fit} onSelectMarker={setSelectedId} />
+        <MapCanvas routes={routes} markers={markers} fit={fit} onSelectMarker={selectItem} />
 
         <div className="map-dialog-panel">
           {isLoading ? <p className="map-hint">Placing everything on the map…</p> : null}
@@ -311,9 +342,68 @@ export default function RideMapDialog({
               </p>
 
               {selected.ride.driver_profile_id === profile?.id ? (
-                <p className="pin-note">This is your ride.</p>
-              ) : selected.ride.mySeat ? (
-                <p className="pin-note">You already asked for a seat . {selected.ride.mySeat.status}.</p>
+                <>
+                  <p className="pin-note">This is your ride.</p>
+                  {selected.ride.requests
+                    .filter(
+                      (seat) => seat.status === 'pending' && seat.initiated_by === 'rider',
+                    )
+                    .map((seat) => (
+                      <div className="pin-request" key={seat.id}>
+                        <span>{seat.rider_name} asked to join</span>
+                        <span className="pin-actions">
+                          <button
+                            type="button"
+                            className="mini accept"
+                            disabled={busy}
+                            onClick={() => void answerSeatRequest(seat.id, true)}
+                          >
+                            Accept
+                          </button>
+                          <button
+                            type="button"
+                            className="mini"
+                            disabled={busy}
+                            onClick={() => void answerSeatRequest(seat.id, false)}
+                          >
+                            Decline
+                          </button>
+                        </span>
+                      </div>
+                    ))}
+                </>
+              ) : selected.ride.mySeat?.status === 'pending' &&
+                selected.ride.mySeat.initiated_by === 'driver' &&
+                selected.ride.matchedRequestId ? (
+                <div className="pin-offer">
+                  <p className="pin-note">The driver offered you this ride.</p>
+                  <div className="pin-actions">
+                    <button
+                      className="primary"
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        void answerRideOffer(selected.ride.matchedRequestId!, true)
+                      }
+                    >
+                      Accept ride
+                    </button>
+                    <button
+                      type="button"
+                      className="map-secondary"
+                      disabled={busy}
+                      onClick={() =>
+                        void answerRideOffer(selected.ride.matchedRequestId!, false)
+                      }
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ) : selected.ride.mySeat?.status === 'pending' ? (
+                <p className="pin-note">Your seat request is waiting for the driver.</p>
+              ) : selected.ride.mySeat?.status === 'accepted' ? (
+                <p className="pin-note">Your seat is confirmed.</p>
               ) : selected.ride.seats_available < 1 ? (
                 <p className="pin-note">No seats left on this one.</p>
               ) : (
@@ -351,11 +441,75 @@ export default function RideMapDialog({
                 >
                   Close request
                 </button>
+              ) : offerRequestId === selected.request.id ? (
+                <form
+                  className="pin-offer-form"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void act(async () => {
+                      await offerRideForRequest({
+                        requestId: selected.request.id,
+                        seatsAvailable: Number(offerSeats),
+                        pricePerSeat: Number(offerPrice),
+                      })
+                      setOfferRequestId(null)
+                    }, `Ride offered to ${selected.request.rider_name}.`)
+                  }}
+                >
+                  <div className="pin-offer-fields">
+                    <label>
+                      Seats
+                      <input
+                        type="number"
+                        min="1"
+                        max="8"
+                        required
+                        value={offerSeats}
+                        onChange={(event) => setOfferSeats(event.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Price per seat
+                      <input
+                        type="number"
+                        min="0"
+                        max="1000"
+                        step="0.01"
+                        required
+                        value={offerPrice}
+                        onChange={(event) => setOfferPrice(event.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <div className="pin-actions">
+                    <button className="primary" type="submit" disabled={busy}>
+                      Send offer
+                    </button>
+                    <button
+                      className="map-secondary"
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setOfferRequestId(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
               ) : (
-                <p className="pin-contact">
-                  Driving this way? Reach {selected.request.rider_name.split(' ')[0]} at{' '}
-                  <b>{selected.request.contact_info}</b>.
-                </p>
+                <>
+                  <p className="pin-contact">
+                    Driving this way? Reach {selected.request.rider_name.split(' ')[0]} at{' '}
+                    <b>{selected.request.contact_info}</b>.
+                  </p>
+                  <button
+                    className="primary"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setOfferRequestId(selected.request.id)}
+                  >
+                    Offer ride
+                  </button>
+                </>
               )}
             </div>
           ) : null}

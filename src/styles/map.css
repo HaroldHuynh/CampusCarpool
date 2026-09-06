@@ -210,6 +210,74 @@ dialog.map-dialog {
   width: 100%;
 }
 
+.pin-request {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.pin-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pin-actions .primary {
+  width: auto;
+  margin-top: 0;
+}
+
+.pin-offer .pin-actions {
+  margin-top: 10px;
+}
+
+.pin-offer-form {
+  margin-top: 14px;
+}
+
+.pin-offer-fields {
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pin-offer-fields label {
+  display: grid;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.pin-offer-fields input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.map-secondary {
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--green-dark);
+  cursor: pointer;
+}
+
+.map-secondary:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
 .map-state {
   padding: 22px 18px;
   border: 1px dashed #cdd8d2;
