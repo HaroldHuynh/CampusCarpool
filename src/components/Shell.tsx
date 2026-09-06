@@ -116,7 +116,7 @@ export function AppHeader({
           {open ? (
             <div className="bell-menu" role="menu">
               <div className="bell-head">
-                <span><b>Notifications</b><small>{notices.length ? `${notices.length} new` : 'All caught up'}</small></span>
+                <span><b>Notifications</b>{notices.length ? <small>{`${notices.length} new`}</small> : null}</span>
                 {notices.length > 0 ? (
                   <button type="button" className="bell-clear" onClick={onClearNotices}>
                     Clear all
