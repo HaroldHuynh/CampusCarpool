@@ -96,11 +96,15 @@ Given a rider trip and a list of rides with resolved coordinates:
 2. **Direction.** Project the rider's origin and destination onto the driver's
    origin→destination segment, yielding parameters `t0` and `t1`. Require
    `t1 > t0`, so the rider travels the same way along the driver's route.
-3. **Corridor.** Reject a ride if the perpendicular distance from either rider
-   endpoint to the driver's segment exceeds 5 km. A driver is not detouring
-   across a county.
+3. **Corridor.** Reject a ride if the rider's **origin** sits more than 5 km
+   from the driver's segment — that is the distance the rider has to cover to
+   meet the driver, and it is the one that has to stay small. The destination
+   end is deliberately not limited: a driver who covers most of the route and
+   drops the rider short is exactly the partial match this feature exists to
+   surface, and step 4 already reflects how much of the trip they cover.
 4. **Route share.** `routeMatch` is the length of the driver's segment between
    the clamped projections, divided by the rider's own trip length, capped at 1.
+   A ride sharing less than 15% of the trip is dropped rather than offered.
 5. **Score.** `0.60 * routeMatch + 0.25 * timeCloseness + 0.15 * seatHeadroom`.
    Ties break on departure time, then ride id, so ordering is stable.
 
