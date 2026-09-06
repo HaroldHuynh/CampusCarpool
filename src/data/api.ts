@@ -73,6 +73,7 @@ export type RideRequest = {
   destination_lng: number | null
   requester_profile_id: string | null
   is_closed: boolean
+  matched_ride_id?: string | null
 }
 
 export type CampusProfile = {
@@ -80,6 +81,13 @@ export type CampusProfile = {
   display_name: string
   rating_average: number
   rating_count: number
+}
+
+export type RideContact = {
+  profile_id: string
+  display_name: string
+  contact_method: 'phone' | 'instagram' | null
+  contact_value: string | null
 }
 
 function one<T>(value: T | T[] | null): T | null {
@@ -208,6 +216,12 @@ export async function requestSeat(rideId: string) {
   return data as 'requested' | 'already_requested' | 'full' | 'own_ride' | 'not_open' | 'missing'
 }
 
+export async function fetchRideContacts(rideId: string): Promise<RideContact[]> {
+  const { data, error } = await getSupabaseClient().rpc('get_ride_contacts', { target_ride_id: rideId })
+  if (error) throw error
+  return (data ?? []) as RideContact[]
+}
+
 /** Driver accepts or declines one seat request. */
 export async function respondToSeatRequest(requestId: string, accept: boolean) {
   const { data, error } = await getSupabaseClient().rpc('respond_to_seat_request', {
@@ -327,6 +341,20 @@ export async function postRideRequest(input: {
   }
 }
 
+export async function offerRideForRequest(input: {
+  requestId: number
+  seatsAvailable: number
+  pricePerSeat: number
+}) {
+  const { data, error } = await getSupabaseClient().rpc('offer_ride_for_request', {
+    target_request_id: input.requestId,
+    offered_seats: input.seatsAvailable,
+    offered_price: input.pricePerSeat,
+  })
+  if (error) throw error
+  return data as string
+}
+
 export async function closeRideRequest(requestId: number, profileId: string) {
   const { error } = await getSupabaseClient().rpc('close_ride_request', {
     request_id: requestId,
@@ -356,7 +384,7 @@ export type HistoryRide = {
 export async function fetchHistory(profileId: string) {
   const supabase = getSupabaseClient()
 
-  const [offered, reservations, given, requests] = await Promise.all([
+  const [offered, reservations, given, requests, matchedRequests] = await Promise.all([
     supabase
       .from('rides')
       .select('*, ride_reservations(id, rider_name, rider_profile_id, status)')
@@ -377,6 +405,11 @@ export async function fetchHistory(profileId: string) {
       .eq('requester_profile_id', profileId)
       .eq('is_closed', false)
       .order('departure_at'),
+    supabase
+      .from('ride_requests')
+      .select('id, origin, destination, matched_ride_id')
+      .eq('requester_profile_id', profileId)
+      .not('matched_ride_id', 'is', null),
   ])
 
   if (offered.error) {
@@ -385,6 +418,10 @@ export async function fetchHistory(profileId: string) {
 
   if (reservations.error) {
     throw reservations.error
+  }
+
+  if (matchedRequests.error) {
+    throw matchedRequests.error
   }
 
   // Carry my own seat status onto the ride so the caller can tell "waiting on
@@ -408,6 +445,10 @@ export async function fetchHistory(profileId: string) {
     reserved,
     rated,
     requests: (requests.data ?? []) as RideRequest[],
+    matchedOffers: (matchedRequests.data ?? []) as Pick<
+      RideRequest,
+      'id' | 'origin' | 'destination' | 'matched_ride_id'
+    >[],
   }
 }
 

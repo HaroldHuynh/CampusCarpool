@@ -10,8 +10,8 @@ type Props = {
   onValueChange: (value: string) => void
 }
 
-/** Contact details are shared both ways — riders and drivers each need to
- *  reach the other — so the copy here stays neutral about which you are. */
+/** Contact details are shared both ways . riders and drivers each need to
+ *  reach the other . so the copy here stays neutral about which you are. */
 function ContactFields({ idPrefix, method, value, onMethodChange, onValueChange }: Props) {
   // Only one contact goes to the database, but switching tabs should not throw
   // away what you already typed (or what was loaded) for the other one.

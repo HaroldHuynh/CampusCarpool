@@ -32,12 +32,15 @@ export type PhoneEdit = { value: string; caret: number }
  * removes the digit before the caret instead.
  */
 export function applyPhoneEdit(rawValue: string, caret: number, previousValue: string): PhoneEdit {
-  const digitsBeforeCaret = rawValue.slice(0, caret).replace(/\D/g, '').length
+  const maxDigits = rawValue.trimStart().startsWith('+') ? 15 : 10
+  const limitedDigits = rawValue.replace(/\D/g, '').slice(0, maxDigits)
+  const limitedRaw = rawValue.trimStart().startsWith('+') ? `+${limitedDigits}` : limitedDigits
+  const digitsBeforeCaret = Math.min(rawValue.slice(0, caret).replace(/\D/g, '').length, maxDigits)
   const isDeletion = rawValue.length < previousValue.length
   const removedNoDigit =
     rawValue.replace(/\D/g, '').length === previousValue.replace(/\D/g, '').length
 
-  let working = rawValue
+  let working = limitedRaw
   let targetDigits = digitsBeforeCaret
 
   if (isDeletion && removedNoDigit && digitsBeforeCaret > 0) {

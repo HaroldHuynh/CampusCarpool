@@ -2,7 +2,7 @@ type Action = { label: string; onClick: () => void }
 
 /**
  * One compact banner for both boards. The tall illustrated hero was fine as a
- * landing page but this is a tool people open repeatedly — it pushed the
+ * landing page but this is a tool people open repeatedly . it pushed the
  * actual listings below the fold every visit.
  *
  * Each board leads with its own primary action and links across to the other,

@@ -4,6 +4,11 @@ export type View = 'requests' | 'rides' | 'profile'
 
 export type Notice = { id: string; text: string; goTo?: View }
 
+export function formatPrice(value: number | string) {
+  const amount = Number(value)
+  return amount.toLocaleString(undefined, { minimumFractionDigits: Number.isInteger(amount) ? 0 : 2, maximumFractionDigits: 2 })
+}
+
 export function AppHeader({
   view,
   onChangeView,
@@ -111,7 +116,7 @@ export function AppHeader({
           {open ? (
             <div className="bell-menu" role="menu">
               <div className="bell-head">
-                <span>Activity</span>
+                <span><b>Notifications</b><small>{notices.length ? `${notices.length} new` : 'All caught up'}</small></span>
                 {notices.length > 0 ? (
                   <button type="button" className="bell-clear" onClick={onClearNotices}>
                     Clear all
@@ -124,6 +129,7 @@ export function AppHeader({
               ) : (
                 notices.map((notice) => (
                   <div className="bell-item" key={notice.id}>
+                    <span className="bell-item-icon" aria-hidden="true">↗</span>
                     {notice.goTo ? (
                       <button
                         type="button"
