@@ -4,6 +4,6 @@ CampusCarpool is a web application seeking to facilitate the discovery of carpoo
 
 Join or request rides to get where you need to go.
 
-If you're a driver, create offers to take students to where they need to go and split the cost.
+If you're a driver, create offers or accept ride requests to take students to where they need to go and split the gas cost with your riders.
 
-Visit it @ https://www.campuscarpool.xyz/
+Visit the website @ https://www.campuscarpool.xyz/
