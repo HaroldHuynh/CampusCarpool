@@ -5,6 +5,7 @@ import MapButton from '../components/MapButton'
 import LocationPicker, { type PickedLocation } from '../components/LocationPicker'
 import ProfileCardDialog from '../components/ProfileCardDialog'
 import RideMapDialog from '../map/RideMapDialog'
+import { resolveLocation } from '../map/locations'
 import {
   closeRideRequest,
   fetchOfferedRides,
@@ -124,13 +125,16 @@ function RidesPage({
   async function handleOffer(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormError('')
-    if (!originPoint || !destinationPoint) {
-      setFormError('Choose a suggested pickup and drop-off address so the map uses the right place.')
-      return
-    }
     setIsSaving(true)
 
     try {
+      const resolvedOrigin = originPoint ?? await resolveLocation(origin)
+      const resolvedDestination = destinationPoint ?? await resolveLocation(destination, { bias: resolvedOrigin })
+
+      if (!resolvedOrigin || !resolvedDestination) {
+        throw new Error('Enter a full pickup and drop-off address.')
+      }
+
       await offerRide({
         origin,
         destination,
@@ -138,8 +142,8 @@ function RidesPage({
         seatsAvailable: Number(seats),
         pricePerSeat: Number(price),
         note: description,
-        originPoint,
-        destinationPoint,
+        originPoint: resolvedOrigin,
+        destinationPoint: resolvedDestination,
       })
       setOrigin('')
       setDestination('')
@@ -337,11 +341,11 @@ function RidesPage({
         title="Share your empty seats"
       >
         <form id="offer-form" onSubmit={handleOffer}>
-          <LocationPicker id="offer-origin" label="Pickup address or place" value={origin} placeholder="Start typing an address, dorm, or campus spot" onChange={setOrigin} onPick={setOriginPoint} required />
-          <LocationPicker id="offer-destination" label="Drop-off address or place" value={destination} placeholder="Start typing an address, airport, or city" onChange={setDestination} onPick={setDestinationPoint} bias={originPoint} required />
+          <LocationPicker id="offer-origin" label="Pickup" value={origin} placeholder="Address or place" onChange={setOrigin} onPick={setOriginPoint} required />
+          <LocationPicker id="offer-destination" label="Drop-off" value={destination} placeholder="Address or place" onChange={setDestination} onPick={setDestinationPoint} bias={originPoint} required />
           <label>
-            Details <small>Optional — add pickup notes, luggage space, or anything riders should know.</small>
-            <textarea value={description} maxLength={300} placeholder="Example: I can meet at the PCV parking lot." onChange={(event) => setDescription(event.target.value)} />
+            Note
+            <textarea value={description} maxLength={300} placeholder="Add a note" onChange={(event) => setDescription(event.target.value)} />
           </label>
           <div className="form-row two-col">
             <label>
@@ -389,7 +393,6 @@ function RidesPage({
                   onChange={(event) => setPrice(event.target.value)}
                 />
               </div>
-              <small>0 if free.</small>
             </label>
           </div>
 

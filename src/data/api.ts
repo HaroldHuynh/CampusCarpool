@@ -65,7 +65,6 @@ export type RideRequest = {
   origin: string
   destination: string
   departure_at: string
-  price_offer: number
   note: string | null
   origin_lat: number | null
   origin_lng: number | null
@@ -279,7 +278,7 @@ export async function fetchRideRequests(): Promise<RideRequest[]> {
   const { data, error } = await getSupabaseClient()
     .from('ride_requests')
     .select(
-      'id, rider_name, contact_info, origin, destination, departure_at, price_offer, note, origin_lat, origin_lng, destination_lat, destination_lng, requester_profile_id, is_closed, requester:campus_profiles!requester_profile_id(display_name, rating_average, rating_count)',
+      'id, rider_name, contact_info, origin, destination, departure_at, note, origin_lat, origin_lng, destination_lat, destination_lng, requester_profile_id, is_closed, requester:campus_profiles!requester_profile_id(display_name, rating_average, rating_count)',
     )
     .eq('is_closed', false)
     .gte('departure_at', new Date().toISOString())
@@ -299,7 +298,6 @@ export async function postRideRequest(input: {
   origin: string
   destination: string
   departureAt: string
-  priceOffer: number
   note: string
   originPoint: { lat: number; lng: number } | null
   destinationPoint: { lat: number; lng: number } | null
@@ -327,7 +325,7 @@ export async function postRideRequest(input: {
     origin: input.origin.trim(),
     destination: input.destination.trim(),
     departure_at: new Date(input.departureAt).toISOString(),
-    price_offer: input.priceOffer,
+    price_offer: 0,
     note: input.note.trim() || null,
     origin_lat: input.originPoint?.lat ?? null,
     origin_lng: input.originPoint?.lng ?? null,
@@ -400,7 +398,7 @@ export async function fetchHistory(profileId: string) {
     supabase
       .from('ride_requests')
       .select(
-        'id, rider_name, contact_info, origin, destination, departure_at, price_offer, note, requester_profile_id, is_closed',
+        'id, rider_name, contact_info, origin, destination, departure_at, note, requester_profile_id, is_closed',
       )
       .eq('requester_profile_id', profileId)
       .eq('is_closed', false)

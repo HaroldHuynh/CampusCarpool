@@ -5,6 +5,7 @@ import MapButton from '../components/MapButton'
 import LocationPicker, { type PickedLocation } from '../components/LocationPicker'
 import ProfileCardDialog from '../components/ProfileCardDialog'
 import RideMapDialog from '../map/RideMapDialog'
+import { resolveLocation } from '../map/locations'
 import {
   closeRideRequest,
   offerRideForRequest,
@@ -60,7 +61,6 @@ function RequestsPage({
   const [destination, setDestination] = useState('')
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
-  const [price, setPrice] = useState('20')
   const [description, setDescription] = useState('')
   const [originPoint, setOriginPoint] = useState<PickedLocation | null>(null)
   const [destinationPoint, setDestinationPoint] = useState<PickedLocation | null>(null)
@@ -106,21 +106,23 @@ function RequestsPage({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormError('')
-    if (!originPoint || !destinationPoint) {
-      setFormError('Choose a suggested pickup and drop-off address so the map uses the right place.')
-      return
-    }
     setIsSaving(true)
 
     try {
+      const resolvedOrigin = originPoint ?? await resolveLocation(origin)
+      const resolvedDestination = destinationPoint ?? await resolveLocation(destination, { bias: resolvedOrigin })
+
+      if (!resolvedOrigin || !resolvedDestination) {
+        throw new Error('Enter a full pickup and drop-off address.')
+      }
+
       await postRideRequest({
         origin,
         destination,
         departureAt: `${date}T${time}`,
-        priceOffer: Number(price),
         note: description,
-        originPoint,
-        destinationPoint,
+        originPoint: resolvedOrigin,
+        destinationPoint: resolvedDestination,
       })
       setOrigin('')
       setDestination('')
@@ -217,7 +219,6 @@ function RequestsPage({
                 <th>Leaving from</th>
                 <th>Destination</th>
                 <th>Departure</th>
-                <th>Offer</th>
                 <th>
                   <span className="sr-only">Action</span>
                 </th>
@@ -269,9 +270,6 @@ function RequestsPage({
                       <span className="date-note">{when.time}</span>
                     </td>
                     <td>
-                      <span className="price">${Number(row.price_offer).toFixed(0)}</span>
-                    </td>
-                    <td>
                       {isMine ? (
                         <button className="reserve" type="button" onClick={() => handleClose(row)}>
                           Close
@@ -319,11 +317,11 @@ function RequestsPage({
         title="Where do you need to go?"
       >
         <form id="request-form" onSubmit={handleSubmit}>
-          <LocationPicker id="request-origin" label="Pickup address or place" value={origin} placeholder="Start typing an address, dorm, or campus spot" onChange={setOrigin} onPick={setOriginPoint} required />
-          <LocationPicker id="request-destination" label="Drop-off address or place" value={destination} placeholder="Start typing an address, airport, or city" onChange={setDestination} onPick={setDestinationPoint} bias={originPoint} required />
+          <LocationPicker id="request-origin" label="Pickup" value={origin} placeholder="Address or place" onChange={setOrigin} onPick={setOriginPoint} required />
+          <LocationPicker id="request-destination" label="Drop-off" value={destination} placeholder="Address or place" onChange={setDestination} onPick={setDestinationPoint} bias={originPoint} required />
           <label>
-            Details <small>Optional — add pickup notes or anything a driver should know.</small>
-            <textarea value={description} maxLength={300} placeholder="Example: I have one suitcase and can meet at the main entrance." onChange={(event) => setDescription(event.target.value)} />
+            Note
+            <textarea value={description} maxLength={300} placeholder="Add a note" onChange={(event) => setDescription(event.target.value)} />
           </label>
           <div className="form-row two-col">
             <label>
@@ -345,22 +343,6 @@ function RequestsPage({
               />
             </label>
           </div>
-          <label>
-            Price offer
-            <div className="money-input">
-              <span>$</span>
-              <input
-                type="number"
-                min="0"
-                max="1000"
-                step="0.01"
-                value={price}
-                required
-                onChange={(event) => setPrice(event.target.value)}
-              />
-            </div>
-          </label>
-
           <p className={`form-error${formError ? ' show' : ''}`} role="alert">
             {formError}
           </p>

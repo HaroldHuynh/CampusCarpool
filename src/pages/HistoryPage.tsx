@@ -455,7 +455,6 @@ function HistoryPage({
                     {busyId === `req:${request.id}` ? 'Closing…' : 'Close this request'}
                   </button>
                 </div>
-                <div className="trip-meta"><span>Waiting for a driver offer</span></div>
               </article>
             ))
           ) : (

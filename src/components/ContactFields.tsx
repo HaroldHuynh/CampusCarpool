@@ -34,8 +34,6 @@ function ContactFields({ idPrefix, method, value, onMethodChange, onValueChange 
   return (
     <fieldset className="contact-fieldset">
       <legend>Contact info</legend>
-      <p className="hint">Shared with the other person once a seat is confirmed.</p>
-
       <div className="segmented" role="radiogroup" aria-label="Contact method">
         {(['phone', 'instagram'] as const).map((option) => (
           <button

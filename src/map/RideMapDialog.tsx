@@ -340,8 +340,6 @@ export default function RideMapDialog({
               <p className="pin-meta">
                 {selected.request.rider_name} · {formatWhen(selected.request.departure_at)}
               </p>
-              <p className="pin-meta">Waiting for a driver to offer a fare</p>
-
               {selected.request.requester_profile_id === profile?.id ? (
                 <button
                   className="primary"
