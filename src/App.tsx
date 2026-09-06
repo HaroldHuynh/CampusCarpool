@@ -43,6 +43,7 @@ function App() {
   const [step, setStep] = useState<Step>('credentials')
   const [view, setView] = useState<View>('rides')
   const [focusRequestId, setFocusRequestId] = useState<number | null>(null)
+  const [focusRideId, setFocusRideId] = useState<string | null>(null)
   const [campusProfile, setCampusProfile] = useState<CampusProfile | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -677,6 +678,10 @@ function App() {
               setFocusRequestId(requestId)
               setView('profile')
             }}
+            onOpenMyRide={(rideId) => {
+              setFocusRideId(rideId)
+              setView('profile')
+            }}
           />
         ) : (
           <HistoryPage
@@ -684,6 +689,7 @@ function App() {
             onToast={showToast}
             onSignOut={handleSignOut}
             focusRequestId={focusRequestId}
+            focusRideId={focusRideId}
           />
         )}
 

@@ -61,6 +61,7 @@ function Preview() {
           onToast={showToast}
           onGoToRequests={() => setBoard('requests')}
           onReviewOffer={() => {}}
+          onOpenMyRide={() => {}}
         />
       ) : (
         <RequestsPage

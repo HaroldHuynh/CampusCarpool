@@ -305,6 +305,17 @@
 .offer-link:hover:not(:disabled) { color: var(--green); text-decoration: underline; }
 .offer-link:disabled { cursor: default; }
 
+.own-ride-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.own-ride-link:hover { color: var(--green); text-decoration: underline; }
+
 .mini {
   border: 1px solid var(--line);
   border-radius: 7px;

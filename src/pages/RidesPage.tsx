@@ -41,6 +41,7 @@ function RidesPage({
   onToast,
   onGoToRequests,
   onReviewOffer,
+  onOpenMyRide,
 }: {
   profile: CampusProfile | null
   modalOpen: boolean
@@ -49,6 +50,7 @@ function RidesPage({
   onToast: (text: string) => void
   onGoToRequests: () => void
   onReviewOffer: (requestId: number) => void
+  onOpenMyRide: (rideId: string) => void
 }) {
   const [rides, setRides] = useState<OfferedRide[]>([])
   const [search, setSearch] = useState('')
@@ -290,7 +292,7 @@ function RidesPage({
                                   (r) => r.status === 'pending' && r.initiated_by === 'driver',
                                 )
                               ? 'Waiting on rider'
-                            : 'Your ride'}
+                            : <button type="button" className="own-ride-link" onClick={() => onOpenMyRide(ride.id)}>Your ride</button>}
                         </span>
                       ) : ride.mySeat?.status === 'declined' ? (
                         <button className="reserve is-declined" type="button" disabled>Declined</button>

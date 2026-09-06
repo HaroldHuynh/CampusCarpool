@@ -127,11 +127,13 @@ function HistoryPage({
   onToast,
   onSignOut,
   focusRequestId,
+  focusRideId,
 }: {
   profile: CampusProfile | null
   onToast: (t: string) => void
   onSignOut: () => void
   focusRequestId?: number | null
+  focusRideId?: string | null
 }) {
   const [offered, setOffered] = useState<HistoryRide[]>([])
   const [reserved, setReserved] = useState<HistoryRide[]>([])
@@ -167,6 +169,13 @@ function HistoryPage({
   }, [load])
 
   useLiveData(load, 'profile-history')
+
+  useEffect(() => {
+    if (!focusRideId || !offered.some((ride) => ride.id === focusRideId)) return
+    window.requestAnimationFrame(() => {
+      document.getElementById(`ride-${focusRideId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }, [focusRideId, offered])
 
   useEffect(() => {
     if (!focusRequestId || !requests.some((request) => request.id === focusRequestId)) return
